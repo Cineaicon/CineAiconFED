@@ -1,70 +1,106 @@
-# Getting Started with Create React App
+# 🎬 AiconERP Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Frontend React moderno com Material-UI para o Sistema AiconERP - Gestão de Orçamentos Cinematográficos.
 
-## Available Scripts
+## ✨ Funcionalidades
 
-In the project directory, you can run:
+### 🏠 Dashboard
+- Estatísticas em tempo real
+- Cards de status dos orçamentos
+- Lista de orçamentos recentes
+- Próximos vencimentos
 
-### `npm start`
+### 📋 Gestão Completa
+- **Orçamentos**: CRUD completo, workflow de status, PDFs
+- **Clientes**: CRUD com busca avançada
+- **Colaboradores**: Gestão completa com status ativo/inativo
+- **Materiais**: Controle de equipamentos e categorias
+- **Extras**: Gestão de extras (frete, transporte, etc.)
+- **Financeiro**: Controle de pagamentos e relatórios
+- **Lixeira**: Soft delete com restauração
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 📄 PDFs
+- Orçamento/Ordem de Serviço
+- Fatura de Locação
+- Checklist de Equipamentos
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🚀 Como Executar
 
-### `npm test`
+### Pré-requisitos
+- Node.js 16+
+- Backend AiconERP rodando
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Instalação
+```bash
+npm install
+```
 
-### `npm run build`
+### Executar
+```bash
+# Desenvolvimento
+npm start
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+# Build para produção
+npm run build
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+O frontend estará disponível em: `http://localhost:3000`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Variáveis de Ambiente
+Crie `.env` ou `.env.production`:
+```env
+REACT_APP_API_URL=http://localhost:5000/api
+```
 
-### `npm run eject`
+## 🏗️ Estrutura
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```
+src/
+├── components/
+│   ├── Layout/          # Header, Sidebar
+│   ├── Dashboard/       # Dashboard principal
+│   ├── Orcamentos/      # CRUD de orçamentos
+│   ├── Clientes/        # CRUD de clientes
+│   ├── Colaboradores/   # CRUD de colaboradores
+│   ├── Materiais/       # CRUD de materiais
+│   ├── Extras/          # CRUD de extras
+│   ├── Financeiro/      # Controle financeiro
+│   ├── Relatorios/      # Relatórios
+│   └── Lixeira/         # Lixeira de orçamentos
+├── services/
+│   └── api.js           # Serviços de API
+└── App.js               # Rotas principais
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🎨 Tecnologias
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- **React 18** - Framework
+- **Material-UI 5** - Componentes
+- **React Router 6** - Navegação
+- **React Hook Form** - Formulários
+- **Axios** - HTTP Client
+- **@mui/x-data-grid** - Tabelas avançadas
+- **date-fns** - Datas
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🚀 Deploy
 
-## Learn More
+O projeto está configurado para deploy no **Vercel**:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Faça push do código para GitHub
+2. Conecte o repositório no Vercel
+3. Configure `REACT_APP_API_URL` com a URL do backend
+4. Deploy automático!
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Consulte `DEPLOY-GUIDE.md` para instruções detalhadas.
 
-### Code Splitting
+## 📊 Status
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+✅ **100% Funcional**
+- 15+ Componentes React
+- Integração completa com backend
+- Interface moderna e responsiva
+- Validações e feedback visual
 
-### Analyzing the Bundle Size
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+**Desenvolvido para AICON - Ações Cinematográficas LTDA** 🎬
