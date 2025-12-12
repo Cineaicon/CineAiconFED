@@ -25,6 +25,7 @@ import {
   Paper,
   Stack,
   FormHelperText,
+  Autocomplete,
 } from '@mui/material';
 import {
   Add,
@@ -79,6 +80,7 @@ const OrcamentoForm = () => {
       maquinista: '',
       dataInicio: '',
       dataFim: '',
+      dataPagamento: '',
       descontoGeral: 0,
       descontoValorGeral: 0,
       agruparPorCategoria: true,
@@ -102,6 +104,8 @@ const OrcamentoForm = () => {
   const [calcKey, setCalcKey] = useState(0); // Forçar recálculo quando necessário
   const itemRefs = useRef({}); // Refs para os cards de itens
   const lastItemIndexRef = useRef(-1); // Rastrear último índice para scroll
+  const [materialInputValues, setMaterialInputValues] = useState({}); // Controlar texto digitado em cada campo de material
+  const [materialFocusStates, setMaterialFocusStates] = useState({}); // Controlar foco de cada campo de material
   
   // Watch todos os campos que afetam o cálculo para atualização em tempo real
   watch(['itens', 'descontoGeral', 'descontoValorGeral']);
@@ -284,6 +288,22 @@ const OrcamentoForm = () => {
 
   const removeItem = (index) => {
     remove(index);
+    // Limpar o estado do input do material removido
+    setMaterialInputValues(prev => {
+      const newValues = { ...prev };
+      delete newValues[index];
+      // Reindexar os valores se necessário
+      const reindexed = {};
+      Object.keys(newValues).forEach(key => {
+        const keyNum = parseInt(key, 10);
+        if (keyNum > index) {
+          reindexed[keyNum - 1] = newValues[key];
+        } else if (keyNum < index) {
+          reindexed[key] = newValues[key];
+        }
+      });
+      return reindexed;
+    });
     // Forçar atualização dos cálculos após remover item
     requestAnimationFrame(() => {
       setCalcKey(prev => prev + 1);
@@ -546,39 +566,123 @@ const OrcamentoForm = () => {
               name={`itens.${index}.materialId`}
               control={control}
               defaultValue={item.materialId || ''}
-              render={({ field: controllerField }) => (
-                <FormControl fullWidth>
-                  <InputLabel>Material</InputLabel>
-                  <Select
-                    {...controllerField}
-                    label="Material"
-                    value={controllerField.value || ''}
-                    onChange={(event) => {
-                      controllerField.onChange(event);
-                      const selectedMaterial = getMaterialById(event.target.value);
-                      if (selectedMaterial) {
-                        const valorUnitario = parseNumber(selectedMaterial.custoDiario, 0);
+              render={({ field: controllerField }) => {
+                const selectedMaterial = getMaterialById(controllerField.value);
+                const inputValue = materialInputValues[index] !== undefined 
+                  ? materialInputValues[index] 
+                  : (selectedMaterial ? `${selectedMaterial.equipamento} — ${formatCurrency(parseNumber(selectedMaterial.custoDiario, 0))}` : '');
+                
+                // Só abre o menu se houver texto digitado E o campo estiver focado (tipo Google)
+                const hasText = inputValue && inputValue.trim().length > 0;
+                const isFocused = materialFocusStates[index] === true;
+                const shouldOpen = hasText && isFocused;
+                
+                return (
+                  <Autocomplete
+                    options={materiais}
+                    getOptionLabel={(option) => {
+                      if (typeof option === 'string') {
+                        const mat = getMaterialById(option);
+                        return mat ? `${mat.equipamento} — ${formatCurrency(parseNumber(mat.custoDiario, 0))}` : '';
+                      }
+                      return `${option.equipamento} — ${formatCurrency(parseNumber(option.custoDiario, 0))}`;
+                    }}
+                    value={selectedMaterial || null}
+                    inputValue={inputValue}
+                    open={shouldOpen}
+                    onInputChange={(event, newInputValue, reason) => {
+                      // Atualizar o valor do input quando o usuário digitar
+                      setMaterialInputValues(prev => ({
+                        ...prev,
+                        [index]: newInputValue
+                      }));
+                      
+                      // Se o usuário limpou o campo ou está digitando, limpar a seleção
+                      if (reason === 'clear' || reason === 'input') {
+                        controllerField.onChange('');
+                        setValue(`itens.${index}.materialId`, '', { shouldDirty: true });
+                        setValue(`itens.${index}.valorUnitario`, 0, { shouldDirty: true });
+                      }
+                    }}
+                    onChange={(event, newValue) => {
+                      const materialId = newValue ? newValue._id : '';
+                      controllerField.onChange(materialId);
+                      
+                      // Atualizar o texto do input quando selecionar um material
+                      if (newValue) {
+                        const displayText = `${newValue.equipamento} — ${formatCurrency(parseNumber(newValue.custoDiario, 0))}`;
+                        setMaterialInputValues(prev => ({
+                          ...prev,
+                          [index]: displayText
+                        }));
+                        
+                        const valorUnitario = parseNumber(newValue.custoDiario, 0);
                         setValue(
                           `itens.${index}.valorUnitario`,
                           valorUnitario,
                           { shouldDirty: true, shouldValidate: true }
                         );
-                        setValue(`itens.${index}.materialId`, event.target.value, { shouldDirty: true });
+                        setValue(`itens.${index}.materialId`, materialId, { shouldDirty: true });
                         // Forçar atualização imediata dos cálculos
                         requestAnimationFrame(() => {
                           setCalcKey(prev => prev + 1);
                         });
                       }
                     }}
-                  >
-                    {materiais.map((materialOption) => (
-                      <MenuItem key={materialOption._id} value={materialOption._id}>
-                        {materialOption.equipamento} — {formatCurrency(parseNumber(materialOption.custoDiario, 0))}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
+                    filterOptions={(options, { inputValue }) => {
+                      // Buscar em qualquer parte do nome do equipamento (início, meio ou fim)
+                      const searchTerm = inputValue.trim();
+                      if (!searchTerm) return [];
+                      
+                      // Converter o termo de busca para minúsculas para comparação case-insensitive
+                      const searchTermLower = searchTerm.toLowerCase();
+                      
+                      return options.filter((option) => {
+                        // Buscar no nome do equipamento
+                        const equipamento = (option.equipamento || '').toLowerCase();
+                        // Buscar na categoria
+                        const categoria = (option.categoria || '').toLowerCase();
+                        
+                        // Verificar se o termo de busca está em qualquer parte do equipamento ou categoria
+                        return equipamento.includes(searchTermLower) || categoria.includes(searchTermLower);
+                      });
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Material"
+                        placeholder="Digite para buscar (ex: 600)..."
+                        variant="outlined"
+                        onFocus={() => {
+                          setMaterialFocusStates(prev => ({ ...prev, [index]: true }));
+                        }}
+                        onBlur={() => {
+                          // Delay para permitir seleção de item do menu
+                          setTimeout(() => {
+                            setMaterialFocusStates(prev => ({ ...prev, [index]: false }));
+                          }, 200);
+                        }}
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => {
+                      if (!option || !value) return false;
+                      return option._id === value._id;
+                    }}
+                    noOptionsText="Nenhum material encontrado"
+                    freeSolo={false}
+                    selectOnFocus
+                    clearOnBlur={false}
+                    handleHomeEndKeys
+                    autoHighlight
+                    blurOnSelect
+                    ListboxProps={{
+                      style: {
+                        maxHeight: '300px', // Limitar altura do menu
+                      },
+                    }}
+                  />
+                );
+              }}
             />
           </Grid>
           <Grid item xs={6} md={2}>
@@ -845,6 +949,7 @@ const OrcamentoForm = () => {
         // Processar datas para manter o dia exato (enviar como string YYYY-MM-DD)
         dataInicio: processDate(data.dataInicio),
         dataFim: processDate(data.dataFim),
+        dataPagamento: processDate(data.dataPagamento),
         // Campos do projeto
         produtor: data.produtor || '',
         diretor: data.diretor || '',
@@ -1070,9 +1175,26 @@ const OrcamentoForm = () => {
                         {...field}
                         fullWidth
                         type="date"
-                        label="Data de Fim"
+                        label="Data de Fim (Devolução)"
                         InputLabelProps={{ shrink: true }}
                         value={field.value || ''}
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="dataPagamento"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        type="date"
+                        label="Data de Pagamento"
+                        InputLabelProps={{ shrink: true }}
+                        value={field.value || ''}
+                        helperText="Data prevista para recebimento do pagamento"
                       />
                     )}
                   />

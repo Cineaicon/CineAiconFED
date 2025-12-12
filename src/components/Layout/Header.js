@@ -4,6 +4,7 @@ import {
   Toolbar,
   Box,
 } from '@mui/material';
+import PaymentNotifications from './PaymentNotifications';
 
 const Header = () => {
   return (
@@ -25,6 +26,8 @@ const Header = () => {
             mr: 2,
           }}
         />
+        <Box sx={{ flexGrow: 1 }} />
+        <PaymentNotifications />
       </Toolbar>
     </AppBar>
   );

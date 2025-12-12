@@ -27,11 +27,13 @@ import {
   Add,
   Event,
   Payment,
+  Notifications,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { orcamentoService, testService } from '../../services/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import PaymentNotifications from '../Layout/PaymentNotifications';
 
 const StatusChip = ({ status }) => {
   const statusConfig = {
@@ -135,29 +137,31 @@ const Dashboard = () => {
       
       setRecentOrcamentos(orcamentosRecentes);
       
-      // Filtrar orçamentos com dataVencimento próxima (até 60 dias no futuro + todos vencidos)
+      // Filtrar orçamentos com dataPagamento próxima (até 60 dias no futuro + todos vencidos)
       const limite60Dias = new Date();
       limite60Dias.setDate(hoje.getDate() + 60);
       limite60Dias.setHours(23, 59, 59, 999);
       
       const vencimentos = orcamentos
         .filter(o => {
-          // Apenas orçamentos pendentes ou confirmados com data de vencimento
+          // Apenas orçamentos pendentes ou confirmados com data de pagamento
           if (o.status === 'CANCELADO' || o.status === 'DEVOLVIDO') return false;
-          if (!o.dataVencimento) return false;
+          // Usar dataPagamento se disponível, caso contrário usar dataVencimento (backward compatibility)
+          const dataPag = o.dataPagamento || o.dataVencimento;
+          if (!dataPag) return false;
           
-          const dataVenc = new Date(o.dataVencimento);
-          dataVenc.setHours(0, 0, 0, 0);
+          const dataPagDate = new Date(dataPag);
+          dataPagDate.setHours(0, 0, 0, 0);
           
           // Mostrar vencidos ou próximos 60 dias
           // Vencidos (antes de hoje) ou próximos (até 60 dias)
-          return dataVenc <= limite60Dias;
+          return dataPagDate <= limite60Dias;
         })
         .sort((a, b) => {
-          // Ordenar por data de vencimento (mais próximos/vencidos primeiro)
+          // Ordenar por data de pagamento (mais próximos/vencidos primeiro)
           // Vencidos primeiro, depois próximos
-          const dataA = new Date(a.dataVencimento);
-          const dataB = new Date(b.dataVencimento);
+          const dataA = new Date(a.dataPagamento || a.dataVencimento);
+          const dataB = new Date(b.dataPagamento || b.dataVencimento);
           dataA.setHours(0, 0, 0, 0);
           dataB.setHours(0, 0, 0, 0);
           
@@ -215,9 +219,12 @@ const Dashboard = () => {
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Ações Rápidas
-              </Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6">
+                  Ações Rápidas
+                </Typography>
+                <PaymentNotifications />
+              </Box>
               <Box display="flex" gap={2} flexWrap="wrap">
                 <Button
                   variant="contained"
@@ -267,11 +274,12 @@ const Dashboard = () => {
                 </Box>
                 <Box>
                   {proximosVencimentos.map((orcamento, index) => {
-                    const dataVenc = new Date(orcamento.dataVencimento);
-                    dataVenc.setHours(0, 0, 0, 0);
+                    const dataPag = orcamento.dataPagamento || orcamento.dataVencimento;
+                    const dataPagDate = new Date(dataPag);
+                    dataPagDate.setHours(0, 0, 0, 0);
                     const hoje = new Date();
                     hoje.setHours(0, 0, 0, 0);
-                    const diffTime = dataVenc - hoje;
+                    const diffTime = dataPagDate - hoje;
                     const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                     const estaVencido = diasRestantes < 0;
                     const estaProximo = diasRestantes <= 7 && diasRestantes >= 0;
@@ -335,14 +343,14 @@ const Dashboard = () => {
                             </Grid>
                             <Grid item xs={12} md={2}>
                               <Typography variant="body2" color="text.secondary">
-                                Data de Vencimento
+                                Data de Pagamento
                               </Typography>
                               <Typography 
                                 variant="body1" 
                                 fontWeight="bold"
                                 color={estaVencido ? 'error.main' : estaProximo ? 'warning.main' : 'text.primary'}
                               >
-                                {format(dataVenc, 'dd/MM/yyyy', { locale: ptBR })}
+                                {format(dataPagDate, 'dd/MM/yyyy', { locale: ptBR })}
                               </Typography>
                               <Chip
                                 label={estaVencido ? `Vencido há ${Math.abs(diasRestantes)} dia(s)` : estaProximo ? `Vence em ${diasRestantes} dia(s)` : `Vence em ${diasRestantes} dias`}

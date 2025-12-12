@@ -389,10 +389,18 @@ const OrcamentoDetail = () => {
             </Grid>
             <Grid item xs={12} md={3}>
               <Typography variant="body2" color="text.secondary">
-                Data de Fim
+                Data de Fim (Devolução)
               </Typography>
               <Typography variant="body1" fontWeight="bold">
                 {orcamento.dataFim ? format(new Date(orcamento.dataFim), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Typography variant="body2" color="text.secondary">
+                Data de Pagamento
+              </Typography>
+              <Typography variant="body1" fontWeight="bold">
+                {orcamento.dataPagamento ? format(new Date(orcamento.dataPagamento), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
               </Typography>
             </Grid>
             <Grid item xs={12} md={3}>
