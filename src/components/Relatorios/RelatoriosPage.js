@@ -20,8 +20,13 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
 } from '@mui/material';
-import { PictureAsPdf, Save as SaveIcon, Edit as EditIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import { PictureAsPdf, Payment as PaymentIcon } from '@mui/icons-material';
 import { orcamentoService } from '../../services/api';
 
 const formatCurrency = (value) =>
@@ -41,10 +46,9 @@ const RelatoriosPage = () => {
   const [summary, setSummary] = useState({ total: 0, totalValorPago: 0, totalValorFinal: 0 });
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [editingValue, setEditingValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [paymentDialog, setPaymentDialog] = useState({ open: false, orcamento: null, valor: '' });
 
   const updateSummary = (orcamentosList) => {
     const totalValorPago = orcamentosList.reduce((acc, item) => acc + (item.valorPago || 0), 0);
@@ -102,20 +106,25 @@ const RelatoriosPage = () => {
     fetchReport(selectedMonth);
   };
 
-  const handleStartEdit = (orcamento) => {
-    setEditingId(orcamento._id);
-    setEditingValue((orcamento.valorPago || 0).toString());
+  const handleOpenPaymentDialog = (orcamento) => {
+    setPaymentDialog({
+      open: true,
+      orcamento,
+      valor: (orcamento.valorPago || 0).toString(),
+    });
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingValue('');
+  const handleClosePaymentDialog = () => {
+    setPaymentDialog({ open: false, orcamento: null, valor: '' });
   };
 
-  const handleSaveValorPago = async (orcamento) => {
+  const handleRegisterPayment = async () => {
+    const { orcamento, valor } = paymentDialog;
+    if (!orcamento) return;
+
     try {
       setSaving(true);
-      const valorPago = parseFloat(editingValue) || 0;
+      const valorPago = parseFloat(valor) || 0;
       
       // Atualizar orçamento no backend
       await orcamentoService.update(orcamento._id, {
@@ -133,19 +142,18 @@ const RelatoriosPage = () => {
       
       setOrcamentos(updatedOrcamentos);
       updateSummary(updatedOrcamentos);
-      setEditingId(null);
-      setEditingValue('');
+      handleClosePaymentDialog();
       
       setSnackbar({
         open: true,
-        message: 'Valor pago atualizado com sucesso!',
+        message: 'Pagamento registrado com sucesso!',
         severity: 'success',
       });
     } catch (err) {
-      console.error('Erro ao atualizar valor pago:', err);
+      console.error('Erro ao registrar pagamento:', err);
       setSnackbar({
         open: true,
-        message: 'Erro ao atualizar valor pago: ' + (err.response?.data?.message || err.message),
+        message: 'Erro ao registrar pagamento: ' + (err.response?.data?.message || err.message),
         severity: 'error',
       });
     } finally {
@@ -287,6 +295,7 @@ const RelatoriosPage = () => {
                     <TableCell>Data de Aprovação</TableCell>
                     <TableCell>Valor Final</TableCell>
                     <TableCell>Valor Pago</TableCell>
+                    <TableCell align="center">Status</TableCell>
                     <TableCell align="center">Ações</TableCell>
                   </TableRow>
                 </TableHead>
@@ -304,63 +313,7 @@ const RelatoriosPage = () => {
                           : '—'}
                       </TableCell>
                       <TableCell>{formatCurrency(orcamento.valorFinal)}</TableCell>
-                      <TableCell>
-                        {editingId === orcamento._id ? (
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <TextField
-                              type="number"
-                              size="small"
-                              value={editingValue}
-                              onChange={(e) => setEditingValue(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleSaveValorPago(orcamento);
-                                } else if (e.key === 'Escape') {
-                                  handleCancelEdit();
-                                }
-                              }}
-                              inputProps={{ 
-                                min: 0, 
-                                step: '0.01',
-                                style: { width: '120px' }
-                              }}
-                              autoFocus
-                            />
-                            <Tooltip title="Salvar">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleSaveValorPago(orcamento)}
-                                disabled={saving}
-                              >
-                                <SaveIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Cancelar">
-                              <IconButton
-                                size="small"
-                                onClick={handleCancelEdit}
-                                disabled={saving}
-                              >
-                                <CancelIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        ) : (
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Typography>{formatCurrency(orcamento.valorPago)}</Typography>
-                            <Tooltip title="Editar valor pago">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleStartEdit(orcamento)}
-                                disabled={saving}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        )}
-                      </TableCell>
+                      <TableCell>{formatCurrency(orcamento.valorPago || 0)}</TableCell>
                       <TableCell align="center">
                         {orcamento.statusPagamento === 'PAGO' && (
                           <Typography variant="body2" color="success.main" fontWeight="bold">
@@ -378,6 +331,17 @@ const RelatoriosPage = () => {
                           </Typography>
                         )}
                       </TableCell>
+                      <TableCell align="center">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<PaymentIcon />}
+                          onClick={() => handleOpenPaymentDialog(orcamento)}
+                          disabled={saving}
+                        >
+                          Registrar Pagamento
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -386,6 +350,54 @@ const RelatoriosPage = () => {
           )}
         </>
       )}
+
+      {/* Dialog para registrar pagamento */}
+      <Dialog open={paymentDialog.open} onClose={handleClosePaymentDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Registrar Pagamento</DialogTitle>
+        <DialogContent>
+          {paymentDialog.orcamento && (
+            <>
+              <DialogContentText sx={{ mb: 2 }}>
+                <strong>Orçamento:</strong> {paymentDialog.orcamento.numero}
+                <br />
+                <strong>Cliente:</strong> {paymentDialog.orcamento.clienteId?.nome || paymentDialog.orcamento.clienteNome || '—'}
+                <br />
+                <strong>Job:</strong> {paymentDialog.orcamento.jobName}
+                <br />
+                <strong>Valor Final:</strong> {formatCurrency(paymentDialog.orcamento.valorFinal || 0)}
+              </DialogContentText>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Valor Pago"
+                type="number"
+                fullWidth
+                variant="outlined"
+                value={paymentDialog.valor}
+                onChange={(e) => setPaymentDialog({ ...paymentDialog, valor: e.target.value })}
+                inputProps={{ 
+                  min: 0, 
+                  step: '0.01',
+                }}
+                helperText={`Valor pendente: ${formatCurrency((paymentDialog.orcamento.valorFinal || 0) - (parseFloat(paymentDialog.valor) || 0))}`}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePaymentDialog} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleRegisterPayment} 
+            variant="contained" 
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={20} /> : <PaymentIcon />}
+          >
+            {saving ? 'Salvando...' : 'Registrar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar para notificações */}
       <Snackbar
