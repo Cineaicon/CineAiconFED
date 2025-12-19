@@ -103,30 +103,30 @@ const MaterialList = () => {
       minWidth: 200,
       renderCell: (params) => {
         const categoria = params.value;
-        const temCategoria = categoria && typeof categoria === 'string' && categoria.trim().length > 0;
-        
-        return temCategoria ? (
-          <Box display="flex" alignItems="center">
-            <Category sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
-            <Chip
-              label={categoria.trim()}
-              size="small"
-              color="primary"
-              variant="outlined"
-            />
-          </Box>
-        ) : (
-          <Box display="flex" alignItems="center">
-            <Category sx={{ fontSize: 16, mr: 0.5, color: 'text.disabled' }} />
-            <Chip
-              label="Sem categoria"
-              size="small"
-              color="default"
-              variant="outlined"
-              sx={{ opacity: 0.6 }}
-            />
-          </Box>
-        );
+                      const temCategoria = categoria && typeof categoria === 'string' && categoria.trim().length > 0;
+                      
+                      return temCategoria ? (
+                        <Box display="flex" alignItems="center">
+                          <Category sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+                          <Chip
+                            label={categoria.trim()}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        </Box>
+                      ) : (
+                        <Box display="flex" alignItems="center">
+                          <Category sx={{ fontSize: 16, mr: 0.5, color: 'text.disabled' }} />
+                          <Chip
+                            label="Sem categoria"
+                            size="small"
+                            color="default"
+                            variant="outlined"
+                            sx={{ opacity: 0.6 }}
+                          />
+                        </Box>
+                      );
       },
     },
     {
@@ -135,12 +135,12 @@ const MaterialList = () => {
       flex: 1,
       minWidth: 250,
       renderCell: (params) => (
-        <Box display="flex" alignItems="center">
-          <Inventory sx={{ fontSize: 16, mr: 0.5 }} />
-          <Typography variant="body2" fontWeight="bold">
+                    <Box display="flex" alignItems="center">
+                      <Inventory sx={{ fontSize: 16, mr: 0.5 }} />
+                      <Typography variant="body2" fontWeight="bold">
             {params.value || 'Sem nome'}
-          </Typography>
-        </Box>
+                      </Typography>
+                    </Box>
       ),
     },
     {
@@ -148,9 +148,9 @@ const MaterialList = () => {
       headerName: 'Custo Diário',
       width: 150,
       renderCell: (params) => (
-        <Typography variant="body2" fontWeight="bold" color="success.main">
+                    <Typography variant="body2" fontWeight="bold" color="success.main">
           R$ {(parseFloat(params.value || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </Typography>
+                    </Typography>
       ),
     },
     {
@@ -158,9 +158,9 @@ const MaterialList = () => {
       headerName: 'Quantidade Disponível',
       width: 180,
       renderCell: (params) => (
-        <Typography variant="body2">
+                    <Typography variant="body2">
           {params.value || 0} unidades
-        </Typography>
+                    </Typography>
       ),
     },
     {
@@ -178,13 +178,13 @@ const MaterialList = () => {
           >
             <EditIcon fontSize="small" />
           </IconButton>
-          <IconButton
-            size="small"
+                    <IconButton
+                      size="small"
             color="error"
             onClick={() => setDeleteDialog({ open: true, id: params.row._id })}
-          >
+                    >
             <DeleteIcon fontSize="small" />
-          </IconButton>
+                    </IconButton>
         </Box>
       ),
     },

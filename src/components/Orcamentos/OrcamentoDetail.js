@@ -325,10 +325,10 @@ const OrcamentoDetail = () => {
                 <ListItem>
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <ListItemText
-                        primary="Responsável"
-                        secondary={orcamento.colaboradorNome || orcamento.colaboradorId?.nome || 'Não definido'}
-                      />
+                  <ListItemText
+                    primary="Responsável"
+                    secondary={orcamento.colaboradorNome || orcamento.colaboradorId?.nome || 'Não definido'}
+                  />
                     </Grid>
                     <Grid item xs={6}>
                       <ListItemText
@@ -347,10 +347,10 @@ const OrcamentoDetail = () => {
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <ListItemText
+                  <ListItemText
                         primary="Maquinista"
                         secondary={orcamento.maquinista || '-'}
-                      />
+                  />
                     </Grid>
                   </Grid>
                 </ListItem>
