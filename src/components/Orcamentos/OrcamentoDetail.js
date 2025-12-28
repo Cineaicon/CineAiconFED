@@ -556,6 +556,14 @@ const OrcamentoDetail = () => {
             >
               PDF Checklist
             </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PictureAsPdf />}
+              onClick={() => handleGeneratePDF('contrato')}
+              color="primary"
+            >
+              PDF Contrato
+            </Button>
           </Box>
         </CardContent>
       </Card>
