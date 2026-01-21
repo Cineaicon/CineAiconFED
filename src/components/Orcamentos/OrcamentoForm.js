@@ -97,7 +97,7 @@ const OrcamentoForm = () => {
   const isReorderingRef = useRef(false);
   const lastGroupedOrderRef = useRef(null);
   const hasLoadedRef = useRef(false);
-  const [calcKey, setCalcKey] = useState(0); // Forçar recálculo quando necessário
+  const [, setCalcKey] = useState(0); // Forçar recálculo quando necessário (calcKey não usado diretamente)
   const itemRefs = useRef({}); // Refs para os cards de itens
   const lastItemIndexRef = useRef(-1); // Rastrear último índice para scroll
   const [materialInputValues, setMaterialInputValues] = useState({}); // Controlar texto digitado em cada campo de material
