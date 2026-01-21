@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -32,16 +32,12 @@ import {
   Delete,
   Save,
   Cancel,
-  PictureAsPdf,
-  AttachMoney,
   ArrowUpward,
   ArrowDownward,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { orcamentoService, clienteService, colaboradorService, materialService } from '../../services/api';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 const steps = ['Informações Básicas', 'Itens do Orçamento', 'Descontos e Totais', 'Revisão'];
 
@@ -68,7 +64,7 @@ const OrcamentoForm = () => {
   const [colaboradores, setColaboradores] = useState([]);
   const [materiais, setMateriais] = useState([]);
 
-  const { control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
+  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
       jobName: '',
       clienteId: '',
@@ -88,13 +84,13 @@ const OrcamentoForm = () => {
     }
   });
 
-  const { fields, append, remove, move, swap, replace } = useFieldArray({
+  const { fields, append, remove, swap, replace } = useFieldArray({
     control,
     name: 'itens'
   });
 
   const watchedFields = watch();
-  const watchedItems = watchedFields.itens || [];
+  const watchedItems = useMemo(() => watchedFields.itens || [], [watchedFields.itens]);
   const watchedDescontoGeral = watch('descontoGeral');
   const watchedDescontoValorGeral = watch('descontoValorGeral');
   const agruparPorCategoria = Boolean(watchedFields.agruparPorCategoria);
@@ -135,24 +131,6 @@ const OrcamentoForm = () => {
     }
   }, [watchedItems, watchedDescontoGeral, watchedDescontoValorGeral]);
 
-  useEffect(() => {
-    loadInitialData();
-    if (id && !hasLoadedRef.current) {
-      hasLoadedRef.current = true;
-      loadOrcamento();
-    } else if (!id) {
-      hasLoadedRef.current = false;
-    }
-  }, [id]);
-
-  // Resetar referências quando o agrupamento é desativado
-  useEffect(() => {
-    if (!agruparPorCategoria) {
-      isReorderingRef.current = false;
-      lastGroupedOrderRef.current = null;
-    }
-  }, [agruparPorCategoria]);
-
   const loadInitialData = async () => {
     try {
       const [clientesRes, colaboradoresRes, materiaisRes] = await Promise.all([
@@ -170,7 +148,7 @@ const OrcamentoForm = () => {
     }
   };
 
-  const loadOrcamento = async () => {
+  const loadOrcamento = useCallback(async () => {
     try {
       setLoading(true);
       const response = await orcamentoService.getById(id);
@@ -240,7 +218,25 @@ const OrcamentoForm = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, replace, setValue]);
+
+  useEffect(() => {
+    loadInitialData();
+    if (id && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadOrcamento();
+    } else if (!id) {
+      hasLoadedRef.current = false;
+    }
+  }, [id, loadOrcamento]);
+
+  // Resetar referências quando o agrupamento é desativado
+  useEffect(() => {
+    if (!agruparPorCategoria) {
+      isReorderingRef.current = false;
+      lastGroupedOrderRef.current = null;
+    }
+  }, [agruparPorCategoria]);
 
   const addItem = () => {
     const newIndex = fields.length;
@@ -332,11 +328,11 @@ const OrcamentoForm = () => {
     }
   };
 
-  const getMaterialById = (materialId) => {
+  const getMaterialById = useCallback((materialId) => {
     return materiais.find(m => m._id === materialId);
-  };
+  }, [materiais]);
 
-  const calculateItemTotal = (item) => {
+  const calculateItemTotal = useCallback((item) => {
     if (!item) return 0;
 
     const material = getMaterialById(item.materialId);
@@ -356,7 +352,7 @@ const OrcamentoForm = () => {
 
     // Retornar valor final com precisão
     return Number(Math.max(subtotal - desconto, 0).toFixed(2));
-  };
+  }, [getMaterialById]);
 
   const calculateTotal = () => {
     const subtotal = fields.reduce((sum, field, index) => {
@@ -394,7 +390,7 @@ const OrcamentoForm = () => {
       return sum + calculateItemTotal(item);
     }, 0);
     return Number(total.toFixed(2));
-  }, [watchedItems, materiais, calcKey]);
+  }, [watchedItems, calculateItemTotal]);
 
   // Calcular total com desconto geral em tempo real
   const totalComDesconto = useMemo(() => {
@@ -404,7 +400,7 @@ const OrcamentoForm = () => {
       ? Number((subtotalItens * descontoPercentual / 100).toFixed(2))
       : descontoValor;
     return Number(Math.max(subtotalItens - descontoGeral, 0).toFixed(2));
-  }, [subtotalItens, watchedDescontoGeral, watchedDescontoValorGeral, calcKey]);
+  }, [subtotalItens, watchedDescontoGeral, watchedDescontoValorGeral]);
 
   const groupedItems = useMemo(() => {
     if (!agruparPorCategoria) {
@@ -423,12 +419,13 @@ const OrcamentoForm = () => {
     });
 
     return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'));
-  }, [fields, watchedItems, agruparPorCategoria, materiais]);
+  }, [fields, watchedItems, agruparPorCategoria, getMaterialById]);
 
   useEffect(() => {
     if (!agruparPorCategoria || groupedItems.length === 0 || isReorderingRef.current || fields.length === 0) {
       return;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
     const nextOrderIndexes = groupedItems.flatMap(([, indexes]) => indexes);
     if (nextOrderIndexes.length !== fields.length) {
@@ -483,6 +480,7 @@ const OrcamentoForm = () => {
     setTimeout(() => {
       isReorderingRef.current = false;
     }, 200);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agruparPorCategoria, groupedItems, fields.length, replace, setValue, watchedItems]);
 
   const getGroupTotal = (indexes) => {
