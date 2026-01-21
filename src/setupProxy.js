@@ -1,14 +1,25 @@
-const { createProxyMiddleware } = require('http-proxy-middleware');
+// setupProxy.js só funciona em desenvolvimento (react-scripts)
+// Em produção no Vercel, use a variável de ambiente REACT_APP_API_URL
+// Este arquivo não é executado durante o build, apenas no servidor de desenvolvimento
+try {
+  const { createProxyMiddleware } = require('http-proxy-middleware');
 
-module.exports = function(app) {
-  app.use(
-    '/api',
-    createProxyMiddleware({
-      target: 'http://localhost:5000',
-      changeOrigin: true,
-      secure: false,
-      logLevel: 'debug',
-    })
-  );
-};
+  module.exports = function(app) {
+    // Só configurar proxy em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      app.use(
+        '/api',
+        createProxyMiddleware({
+          target: process.env.REACT_APP_PROXY_TARGET || 'http://localhost:5000',
+          changeOrigin: true,
+          secure: false,
+          logLevel: 'error',
+        })
+      );
+    }
+  };
+} catch (error) {
+  // Ignorar erros durante o build (http-proxy-middleware pode não estar disponível)
+  module.exports = function() {};
+}
 
