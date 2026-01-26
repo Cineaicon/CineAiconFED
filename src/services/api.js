@@ -56,7 +56,7 @@ export const orcamentoService = {
   delete: (id) => api.delete(`/orcamentos/${id}`),
   
   // Workflow de status
-  updateStatus: (id, status) => api.patch(`/orcamentos/${id}/status`, { status }),
+  updateStatus: (id, status, extras = {}) => api.patch(`/orcamentos/${id}/status`, { status, ...extras }),
   
   // Gestão de itens
   addItem: (orcamentoId, itemData) => api.post(`/orcamentos/${orcamentoId}/itens`, itemData),

@@ -9,3 +9,5 @@ if ($processos) {
     Write-Host "Nenhum processo Node.js encontrado." -ForegroundColor Green
 }
 
+
+

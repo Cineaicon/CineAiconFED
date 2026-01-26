@@ -146,11 +146,12 @@ const OrcamentoDetail = () => {
 
   const handleConfirmDevolucao = async () => {
     try {
-      await orcamentoService.update(id, {
-        status: 'DEVOLVIDO',
+      // Atualizar status e dados de devolução em uma única chamada
+      await orcamentoService.updateStatus(id, 'DEVOLVIDO', {
         dataDevolucaoReal: devolucaoData.dataDevolucaoReal,
         observacao: devolucaoData.observacao,
       });
+      
       loadOrcamento();
       setDevolucaoDialogOpen(false);
       setDevolucaoData({
@@ -159,7 +160,7 @@ const OrcamentoDetail = () => {
       });
     } catch (err) {
       console.error('Erro ao marcar devolução:', err);
-      setError('Erro ao marcar devolução');
+      setError(err.response?.data?.message || 'Erro ao marcar devolução');
     }
   };
 
