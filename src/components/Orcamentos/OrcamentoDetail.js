@@ -146,11 +146,21 @@ const OrcamentoDetail = () => {
 
   const handleConfirmDevolucao = async () => {
     try {
+      setError(null); // Limpar erro anterior
+      
+      // Verificar status atual antes de tentar atualizar
+      if (orcamento?.status !== 'CONFIRMADO') {
+        setError(`Não é possível marcar como devolvido. Status atual: ${orcamento?.status || 'desconhecido'}. Apenas orçamentos CONFIRMADOS podem ser marcados como DEVOLVIDO.`);
+        return;
+      }
+      
       // Atualizar status e dados de devolução em uma única chamada
-      await orcamentoService.updateStatus(id, 'DEVOLVIDO', {
+      const response = await orcamentoService.updateStatus(id, 'DEVOLVIDO', {
         dataDevolucaoReal: devolucaoData.dataDevolucaoReal,
         observacao: devolucaoData.observacao,
       });
+      
+      console.log('Status atualizado com sucesso:', response.data);
       
       loadOrcamento();
       setDevolucaoDialogOpen(false);
@@ -160,7 +170,13 @@ const OrcamentoDetail = () => {
       });
     } catch (err) {
       console.error('Erro ao marcar devolução:', err);
-      setError(err.response?.data?.message || 'Erro ao marcar devolução');
+      const errorMessage = err.response?.data?.message || err.message || 'Erro ao marcar devolução';
+      setError(errorMessage);
+      console.error('Detalhes do erro:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        statusAtual: orcamento?.status,
+      });
     }
   };
 
