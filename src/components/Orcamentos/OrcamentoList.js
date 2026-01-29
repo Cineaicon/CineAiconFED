@@ -33,6 +33,7 @@ import {
   CheckCircle,
   Add,
   Search,
+  ContentCopy,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { orcamentoService } from '../../services/api';
@@ -115,6 +116,19 @@ const OrcamentoList = () => {
     } catch (err) {
       console.error('Erro ao deletar orçamento:', err);
       setError('Erro ao deletar orçamento');
+    }
+    handleMenuClose();
+  };
+
+  const handleClone = async () => {
+    try {
+      setError(null);
+      const response = await orcamentoService.clone(selectedOrcamento._id);
+      // Redirecionar para o novo orçamento clonado
+      navigate(`/orcamentos/${response.data._id}`);
+    } catch (err) {
+      console.error('Erro ao clonar orçamento:', err);
+      setError(err.response?.data?.message || 'Erro ao clonar orçamento');
     }
     handleMenuClose();
   };
@@ -300,6 +314,10 @@ const OrcamentoList = () => {
         <MenuItem onClick={handleEdit}>
           <Edit sx={{ mr: 1 }} />
           Editar
+        </MenuItem>
+        <MenuItem onClick={handleClone}>
+          <ContentCopy sx={{ mr: 1 }} />
+          Clonar Orçamento
         </MenuItem>
         <MenuItem onClick={handleStatusChange}>
           <CheckCircle sx={{ mr: 1 }} />

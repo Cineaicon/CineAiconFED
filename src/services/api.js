@@ -54,6 +54,7 @@ export const orcamentoService = {
   create: (data) => api.post('/orcamentos', data),
   update: (id, data) => api.put(`/orcamentos/${id}`, data),
   delete: (id) => api.delete(`/orcamentos/${id}`),
+  clone: (id) => api.post(`/orcamentos/${id}/clonar`),
   
   // Workflow de status
   updateStatus: (id, status, extras = {}) => api.patch(`/orcamentos/${id}/status`, { status, ...extras }),
