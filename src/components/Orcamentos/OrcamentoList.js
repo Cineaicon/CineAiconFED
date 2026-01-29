@@ -23,6 +23,8 @@ import {
   CircularProgress,
   Alert,
   TablePagination,
+  Checkbox,
+  Toolbar,
 } from '@mui/material';
 import {
   MoreVert,
@@ -34,6 +36,7 @@ import {
   Add,
   Search,
   ContentCopy,
+  DeleteSweep,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { orcamentoService } from '../../services/api';
@@ -65,6 +68,9 @@ const OrcamentoList = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -172,11 +178,13 @@ const OrcamentoList = () => {
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
+    setSelectedIds([]); // Limpar seleção ao mudar de página
   };
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+    setSelectedIds([]); // Limpar seleção ao mudar quantidade por página
   };
 
   const handleSearch = (event) => {
@@ -192,7 +200,68 @@ const OrcamentoList = () => {
       );
       setFilteredOrcamentos(filtered);
     }
+    // Limpar seleção ao buscar
+    setSelectedIds([]);
   };
+
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
+      const currentPageIds = filteredOrcamentos
+        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+        .map(orcamento => orcamento._id);
+      setSelectedIds(currentPageIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    const selectedIndex = selectedIds.indexOf(id);
+    let newSelected = [];
+
+    if (selectedIndex === -1) {
+      newSelected = newSelected.concat(selectedIds, id);
+    } else if (selectedIndex === 0) {
+      newSelected = newSelected.concat(selectedIds.slice(1));
+    } else if (selectedIndex === selectedIds.length - 1) {
+      newSelected = newSelected.concat(selectedIds.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelected = newSelected.concat(
+        selectedIds.slice(0, selectedIndex),
+        selectedIds.slice(selectedIndex + 1)
+      );
+    }
+
+    setSelectedIds(newSelected);
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      setDeleting(true);
+      setError(null);
+      
+      // Excluir todos os orçamentos selecionados
+      await Promise.all(selectedIds.map(id => orcamentoService.delete(id)));
+      
+      // Recarregar lista e limpar seleção
+      await loadOrcamentos();
+      setSelectedIds([]);
+      setDeleteDialogOpen(false);
+    } catch (err) {
+      console.error('Erro ao excluir orçamentos:', err);
+      setError('Erro ao excluir orçamentos selecionados');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const isSelected = (id) => selectedIds.indexOf(id) !== -1;
+  
+  const currentPageOrcamentos = filteredOrcamentos.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const currentPageIds = currentPageOrcamentos.map(orc => orc._id);
+  const numSelected = selectedIds.length;
+  const numSelectedInCurrentPage = currentPageIds.filter(id => selectedIds.includes(id)).length;
+  const isAllSelected = currentPageOrcamentos.length > 0 && numSelectedInCurrentPage === currentPageOrcamentos.length;
 
   if (loading) {
     return (
@@ -209,6 +278,16 @@ const OrcamentoList = () => {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Orçamentos</Typography>
         <Box display="flex" gap={2}>
+          {numSelected > 0 && (
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<DeleteSweep />}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              Excluir Selecionados ({numSelected})
+            </Button>
+          )}
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -245,6 +324,14 @@ const OrcamentoList = () => {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    indeterminate={numSelectedInCurrentPage > 0 && numSelectedInCurrentPage < currentPageOrcamentos.length}
+                    checked={isAllSelected}
+                    onChange={handleSelectAll}
+                    color="primary"
+                  />
+                </TableCell>
                 <TableCell>Job</TableCell>
                 <TableCell>Cliente</TableCell>
                 <TableCell>Status</TableCell>
@@ -255,8 +342,21 @@ const OrcamentoList = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredOrcamentos.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((orcamento) => (
-                <TableRow key={orcamento._id} hover>
+              {currentPageOrcamentos.map((orcamento) => {
+                const isItemSelected = isSelected(orcamento._id);
+                return (
+                <TableRow 
+                  key={orcamento._id} 
+                  hover
+                  selected={isItemSelected}
+                >
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={isItemSelected}
+                      onChange={() => handleSelectOne(orcamento._id)}
+                      color="primary"
+                    />
+                  </TableCell>
                   <TableCell>{orcamento.jobName}</TableCell>
                   <TableCell>
                     {orcamento.clienteNome || orcamento.clienteId?.nome || 'Cliente não encontrado'}
@@ -284,7 +384,8 @@ const OrcamentoList = () => {
                     </IconButton>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
@@ -340,6 +441,31 @@ const OrcamentoList = () => {
           Excluir
         </MenuItem>
       </Menu>
+
+      {/* Dialog de Confirmação de Exclusão Múltipla */}
+      <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja excluir {numSelected} orçamento(s) selecionado(s)?
+            Esta ação não pode ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleDeleteSelected} 
+            color="error" 
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={20} /> : <DeleteSweep />}
+          >
+            {deleting ? 'Excluindo...' : 'Excluir'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog de Alteração de Status */}
       <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)}>
