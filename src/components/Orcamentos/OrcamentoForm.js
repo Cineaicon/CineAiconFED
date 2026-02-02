@@ -63,6 +63,9 @@ const OrcamentoForm = () => {
   const [clientes, setClientes] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [materiais, setMateriais] = useState([]);
+  const [applyDiasValue, setApplyDiasValue] = useState('');
+  const [applyDescontoPercentualValue, setApplyDescontoPercentualValue] = useState('');
+  const [applyDescontoValorValue, setApplyDescontoValorValue] = useState('');
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
@@ -304,6 +307,52 @@ const OrcamentoForm = () => {
     requestAnimationFrame(() => {
       setCalcKey(prev => prev + 1);
     });
+  };
+
+  // Função para aplicar dias em todos os itens
+  const applyDiasToAll = () => {
+    const diasValue = parseNumber(applyDiasValue, 1);
+    if (diasValue > 0) {
+      fields.forEach((_, index) => {
+        setValue(`itens.${index}.dias`, diasValue, { shouldDirty: true, shouldValidate: true });
+      });
+      // Forçar atualização dos cálculos
+      requestAnimationFrame(() => {
+        setCalcKey(prev => prev + 1);
+      });
+    }
+  };
+
+  // Função para aplicar desconto percentual em todos os itens
+  const applyDescontoPercentualToAll = () => {
+    const descontoValue = parseNumber(applyDescontoPercentualValue, 0);
+    if (descontoValue >= 0) {
+      fields.forEach((_, index) => {
+        // Limpar desconto em valor quando usar percentual
+        setValue(`itens.${index}.descontoValor`, 0, { shouldDirty: true });
+        setValue(`itens.${index}.descontoPercentual`, descontoValue, { shouldDirty: true, shouldValidate: true });
+      });
+      // Forçar atualização dos cálculos
+      requestAnimationFrame(() => {
+        setCalcKey(prev => prev + 1);
+      });
+    }
+  };
+
+  // Função para aplicar desconto em valor em todos os itens
+  const applyDescontoValorToAll = () => {
+    const descontoValue = parseNumber(applyDescontoValorValue, 0);
+    if (descontoValue >= 0) {
+      fields.forEach((_, index) => {
+        // Limpar desconto percentual quando usar valor
+        setValue(`itens.${index}.descontoPercentual`, 0, { shouldDirty: true });
+        setValue(`itens.${index}.descontoValor`, descontoValue, { shouldDirty: true, shouldValidate: true });
+      });
+      // Forçar atualização dos cálculos
+      requestAnimationFrame(() => {
+        setCalcKey(prev => prev + 1);
+      });
+    }
   };
 
   const moveItemUp = (index) => {
@@ -1235,6 +1284,92 @@ const OrcamentoForm = () => {
                   />
                 </Box>
               </Box>
+
+              {/* Campos para aplicar valores em todos os itens */}
+              {fields.length > 0 && (
+                <Box
+                  sx={{
+                    p: 2,
+                    mb: 3,
+                    backgroundColor: 'action.hover',
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                    Aplicar em Todos os Itens
+                  </Typography>
+                  <Grid container spacing={2} alignItems="flex-end">
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Dias"
+                        value={applyDiasValue}
+                        onChange={(e) => setApplyDiasValue(e.target.value)}
+                        inputProps={{ min: 1, step: '1' }}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={applyDiasToAll}
+                        disabled={!applyDiasValue || parseNumber(applyDiasValue, 0) <= 0}
+                        size="small"
+                      >
+                        Aplicar Dias
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Desconto %"
+                        value={applyDescontoPercentualValue}
+                        onChange={(e) => setApplyDescontoPercentualValue(e.target.value)}
+                        inputProps={{ min: 0, max: 100, step: '0.01' }}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={applyDescontoPercentualToAll}
+                        disabled={!applyDescontoPercentualValue || parseNumber(applyDescontoPercentualValue, 0) < 0}
+                        size="small"
+                      >
+                        Aplicar Desconto %
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Desconto (R$)"
+                        value={applyDescontoValorValue}
+                        onChange={(e) => setApplyDescontoValorValue(e.target.value)}
+                        inputProps={{ min: 0, step: '0.01' }}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={applyDescontoValorToAll}
+                        disabled={!applyDescontoValorValue || parseNumber(applyDescontoValorValue, 0) < 0}
+                        size="small"
+                      >
+                        Aplicar Desconto (R$)
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
 
               {fields.length === 0 ? (
                 <Box textAlign="center" py={4}>
