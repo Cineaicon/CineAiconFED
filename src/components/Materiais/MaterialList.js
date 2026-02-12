@@ -29,6 +29,7 @@ import {
   Search as SearchIcon,
   Category,
   Inventory,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { materialService } from '../../services/api';
@@ -49,6 +50,7 @@ const MaterialList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [loadingPdf, setLoadingPdf] = useState(false);
 
   useEffect(() => {
     loadMateriais();
@@ -72,6 +74,30 @@ const MaterialList = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadListaPdf = async () => {
+    try {
+      setLoadingPdf(true);
+      const { data } = await materialService.downloadListaPdf();
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `lista-materiais-${new Date().toISOString().slice(0, 10)}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setSnackbar({ open: true, message: 'Lista de materiais baixada com sucesso!', severity: 'success' });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Erro ao baixar PDF: ' + (error.response?.data?.message || error.message),
+        severity: 'error',
+      });
+    } finally {
+      setLoadingPdf(false);
     }
   };
 
@@ -202,13 +228,23 @@ const MaterialList = () => {
           <Typography variant="h4" component="h1">
             Materiais/Equipamentos
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/materiais/novo')}
-          >
-            Novo Material
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<PdfIcon />}
+              onClick={handleDownloadListaPdf}
+              disabled={loadingPdf}
+            >
+              {loadingPdf ? 'Gerando...' : 'Lista em PDF'}
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/materiais/novo')}
+            >
+              Novo Material
+            </Button>
+          </Box>
         </Box>
 
         <TextField
