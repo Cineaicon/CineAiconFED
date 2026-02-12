@@ -194,8 +194,11 @@ const OrcamentoList = () => {
     if (term === '') {
       setFilteredOrcamentos(orcamentos);
     } else {
-      const filtered = orcamentos.filter(orcamento => 
-        orcamento.jobName?.toLowerCase().includes(term)
+      const clienteNome = (orcamento) =>
+        (orcamento.clienteNome || orcamento.clienteId?.nome || '').toLowerCase();
+      const filtered = orcamentos.filter(orcamento =>
+        orcamento.jobName?.toLowerCase().includes(term) ||
+        clienteNome(orcamento).includes(term)
       );
       setFilteredOrcamentos(filtered);
     }
@@ -302,7 +305,7 @@ const OrcamentoList = () => {
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Buscar por nome do job..."
+          placeholder="Buscar por job ou nome do cliente..."
           value={searchTerm}
           onChange={handleSearch}
           InputProps={{
