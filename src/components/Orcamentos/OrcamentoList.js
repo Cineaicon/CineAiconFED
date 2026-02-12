@@ -36,6 +36,7 @@ import {
   Search,
   ContentCopy,
   DeleteSweep,
+  LocalShipping,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { orcamentoService } from '../../services/api';
@@ -63,7 +64,14 @@ const OrcamentoList = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOrcamento, setSelectedOrcamento] = useState(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [orcamentoParaStatus, setOrcamentoParaStatus] = useState(null);
   const [newStatus, setNewStatus] = useState('');
+  const [devolucaoDialogOpen, setDevolucaoDialogOpen] = useState(false);
+  const [orcamentoDevolucaoId, setOrcamentoDevolucaoId] = useState(null);
+  const [devolucaoData, setDevolucaoData] = useState({
+    dataDevolucaoReal: format(new Date(), 'yyyy-MM-dd'),
+    observacao: '',
+  });
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -139,21 +147,66 @@ const OrcamentoList = () => {
   };
 
   const handleStatusChange = () => {
-    setStatusDialogOpen(true);
+    if (selectedOrcamento) {
+      setOrcamentoParaStatus({ _id: selectedOrcamento._id, status: selectedOrcamento.status });
+      setNewStatus('');
+      setStatusDialogOpen(true);
+    }
     handleMenuClose();
   };
 
   const confirmStatusChange = async () => {
+    if (!orcamentoParaStatus || !newStatus) return;
     try {
-      await orcamentoService.updateStatus(selectedOrcamento._id, newStatus);
+      setError(null);
+      await orcamentoService.updateStatus(orcamentoParaStatus._id, newStatus);
       loadOrcamentos();
+      setStatusDialogOpen(false);
+      setOrcamentoParaStatus(null);
+      setNewStatus('');
     } catch (err) {
       console.error('Erro ao atualizar status:', err);
-      setError('Erro ao atualizar status');
+      setError(err.response?.data?.message || 'Erro ao atualizar status');
     }
-    setStatusDialogOpen(false);
-    setNewStatus('');
   };
+
+  const handleOpenDevolucao = () => {
+    if (selectedOrcamento) {
+      setOrcamentoDevolucaoId(selectedOrcamento._id);
+      setDevolucaoData({
+        dataDevolucaoReal: format(new Date(), 'yyyy-MM-dd'),
+        observacao: '',
+      });
+      setDevolucaoDialogOpen(true);
+    }
+    handleMenuClose();
+  };
+
+  const handleConfirmDevolucao = async () => {
+    if (!orcamentoDevolucaoId) return;
+    try {
+      setError(null);
+      await orcamentoService.updateStatus(orcamentoDevolucaoId, 'DEVOLVIDO', {
+        dataDevolucaoReal: devolucaoData.dataDevolucaoReal,
+        observacao: devolucaoData.observacao,
+      });
+      loadOrcamentos();
+      setDevolucaoDialogOpen(false);
+      setOrcamentoDevolucaoId(null);
+      setDevolucaoData({ dataDevolucaoReal: format(new Date(), 'yyyy-MM-dd'), observacao: '' });
+    } catch (err) {
+      console.error('Erro ao marcar devolução:', err);
+      setError(err.response?.data?.message || err.message || 'Erro ao marcar devolução');
+    }
+  };
+
+  const statusTransitions = {
+    PENDENTE: ['CONFIRMADO', 'CANCELADO'],
+    CONFIRMADO: ['DEVOLVIDO', 'CANCELADO'],
+    DEVOLVIDO: [],
+    CANCELADO: ['PENDENTE'],
+  };
+  const opcoesStatus = orcamentoParaStatus ? (statusTransitions[orcamentoParaStatus.status] || []) : [];
 
   const handleGeneratePDF = async (tipo) => {
     try {
@@ -426,6 +479,12 @@ const OrcamentoList = () => {
           <CheckCircle sx={{ mr: 1 }} />
           Alterar Status
         </MenuItem>
+        {selectedOrcamento?.status === 'CONFIRMADO' && (
+          <MenuItem onClick={handleOpenDevolucao}>
+            <LocalShipping sx={{ mr: 1 }} />
+            Marcar como Devolvido
+          </MenuItem>
+        )}
         <MenuItem onClick={() => handleGeneratePDF('orcamento')}>
           <PictureAsPdf sx={{ mr: 1 }} />
           PDF Orçamento
@@ -470,7 +529,14 @@ const OrcamentoList = () => {
       </Dialog>
 
       {/* Dialog de Alteração de Status */}
-      <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)}>
+      <Dialog
+        open={statusDialogOpen}
+        onClose={() => {
+          setStatusDialogOpen(false);
+          setOrcamentoParaStatus(null);
+          setNewStatus('');
+        }}
+      >
         <DialogTitle>Alterar Status do Orçamento</DialogTitle>
         <DialogContent>
           <TextField
@@ -481,19 +547,78 @@ const OrcamentoList = () => {
             onChange={(e) => setNewStatus(e.target.value)}
             sx={{ mt: 2 }}
           >
-            <MenuItem value="">
-              Selecione um status
-            </MenuItem>
-            <MenuItem value="PENDENTE">Pendente</MenuItem>
-            <MenuItem value="CONFIRMADO">Confirmado</MenuItem>
-            <MenuItem value="DEVOLVIDO">Devolvido</MenuItem>
-            <MenuItem value="CANCELADO">Cancelado</MenuItem>
+            <MenuItem value="">Selecione um status</MenuItem>
+            {opcoesStatus.includes('PENDENTE') && <MenuItem value="PENDENTE">Pendente</MenuItem>}
+            {opcoesStatus.includes('CONFIRMADO') && <MenuItem value="CONFIRMADO">Confirmado</MenuItem>}
+            {opcoesStatus.includes('DEVOLVIDO') && <MenuItem value="DEVOLVIDO">Devolvido</MenuItem>}
+            {opcoesStatus.includes('CANCELADO') && <MenuItem value="CANCELADO">Cancelado</MenuItem>}
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setStatusDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={confirmStatusChange} variant="contained">
+          <Button
+            onClick={() => {
+              setStatusDialogOpen(false);
+              setOrcamentoParaStatus(null);
+              setNewStatus('');
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button onClick={confirmStatusChange} variant="contained" disabled={!newStatus}>
             Confirmar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Devolução (igual aos detalhes) */}
+      <Dialog
+        open={devolucaoDialogOpen}
+        onClose={() => {
+          setDevolucaoDialogOpen(false);
+          setOrcamentoDevolucaoId(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Marcar como Devolvido</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              fullWidth
+              type="date"
+              label="Data de Devolução Real"
+              value={devolucaoData.dataDevolucaoReal}
+              onChange={(e) => setDevolucaoData({ ...devolucaoData, dataDevolucaoReal: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Observações"
+              value={devolucaoData.observacao}
+              onChange={(e) => setDevolucaoData({ ...devolucaoData, observacao: e.target.value })}
+              multiline
+              rows={4}
+              placeholder="Adicione observações sobre a devolução (opcional)..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDevolucaoDialogOpen(false);
+              setOrcamentoDevolucaoId(null);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<LocalShipping />}
+            onClick={handleConfirmDevolucao}
+          >
+            Confirmar Devolução
           </Button>
         </DialogActions>
       </Dialog>
