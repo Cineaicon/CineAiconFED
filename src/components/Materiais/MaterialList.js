@@ -96,6 +96,7 @@ const MaterialList = () => {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [loadingPdf, setLoadingPdf] = useState(false);
+  const [loadingPdfInventario, setLoadingPdfInventario] = useState(false);
   const [salvandoInventarioId, setSalvandoInventarioId] = useState(null);
 
   useEffect(() => {
@@ -145,6 +146,30 @@ const MaterialList = () => {
       });
     } finally {
       setLoadingPdf(false);
+    }
+  };
+
+  const handleDownloadInventarioPdf = async () => {
+    try {
+      setLoadingPdfInventario(true);
+      const { data } = await materialService.downloadInventarioPdf();
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `lista-inventario-${new Date().toISOString().slice(0, 10)}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setSnackbar({ open: true, message: 'Lista de inventário baixada com sucesso!', severity: 'success' });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Erro ao baixar PDF do inventário: ' + (error.response?.data?.message || error.message),
+        severity: 'error',
+      });
+    } finally {
+      setLoadingPdfInventario(false);
     }
   };
 
@@ -363,9 +388,19 @@ const MaterialList = () => {
 
         {tabAtiva === 1 && (
           <>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Quantidade total dos equipamentos na casa (levantamento). Edite a quantidade e salve; valores iniciais em zero para preenchimento no levantamento.
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 280 }}>
+                Quantidade total dos equipamentos na casa (levantamento). Edite a quantidade e salve; valores iniciais em zero para preenchimento no levantamento.
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<PdfIcon />}
+                onClick={handleDownloadInventarioPdf}
+                disabled={loadingPdfInventario}
+              >
+                {loadingPdfInventario ? 'Gerando...' : 'PDF Inventário'}
+              </Button>
+            </Box>
             <TextField
               fullWidth
               size="small"
