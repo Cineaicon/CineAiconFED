@@ -47,6 +47,7 @@ const MaterialForm = () => {
       equipamento: '',
       custoDiario: '0',
       quantidadeDisponivel: 0,
+      quantidadeInventario: 0,
     }
   });
 
@@ -79,6 +80,7 @@ const MaterialForm = () => {
         equipamento: material.equipamento || '',
         custoDiario: material.custoDiario || '0',
         quantidadeDisponivel: material.quantidadeDisponivel || 0,
+        quantidadeInventario: material.quantidadeInventario != null ? material.quantidadeInventario : 0,
       });
     } catch (err) {
       console.error('Erro ao carregar material:', err);
@@ -262,6 +264,19 @@ const MaterialForm = () => {
                   })}
                   error={!!errors.quantidadeDisponivel}
                   helperText={errors.quantidadeDisponivel?.message}
+                  inputProps={{ min: '0' }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Quantidade no inventário"
+                  {...control.register('quantidadeInventario', { 
+                    min: { value: 0, message: 'Deve ser maior ou igual a 0' }
+                  })}
+                  error={!!errors.quantidadeInventario}
+                  helperText="Quantidade total deste equipamento na casa (levantamento físico). Este valor alimenta a aba Inventário e o PDF de inventário. Pode ser preenchido agora ou depois na lista de Inventário."
                   inputProps={{ min: '0' }}
                 />
               </Grid>
