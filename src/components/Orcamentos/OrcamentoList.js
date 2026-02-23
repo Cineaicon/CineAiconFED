@@ -312,17 +312,36 @@ const OrcamentoList = () => {
     try {
       setDeleting(true);
       setError(null);
-      
-      // Excluir todos os orçamentos selecionados
-      await Promise.all(selectedIds.map(id => orcamentoService.delete(id)));
-      
+
+      // Encontrar orçamentos selecionados
+      const selecionados = orcamentos.filter(orc => selectedIds.includes(orc._id));
+      const isDeletavel = (status) => status === 'PENDENTE' || status === 'DEVOLVIDO';
+      const deletaveis = selecionados.filter(orc => isDeletavel(orc.status));
+      const naoDeletaveis = selecionados.filter(orc => !isDeletavel(orc.status));
+
+      // Se nenhum selecionado puder ser deletado, apenas mostra mensagem clara
+      if (deletaveis.length === 0) {
+        setError('Só é possível excluir orçamentos com status PENDENTE ou DEVOLVIDO.');
+        setDeleteDialogOpen(false);
+        return;
+      }
+
+      // Excluir apenas os orçamentos em status permitido
+      await Promise.all(deletaveis.map(orc => orcamentoService.delete(orc._id)));
+
       // Recarregar lista e limpar seleção
       await loadOrcamentos();
       setSelectedIds([]);
       setDeleteDialogOpen(false);
+
+      // Avisar se algum não pôde ser excluído
+      if (naoDeletaveis.length > 0) {
+        const nomes = naoDeletaveis.map(orc => orc.jobName || orc.numero || orc._id).join(', ');
+        setError(`Alguns orçamentos não puderam ser excluídos porque não estão com status PENDENTE ou DEVOLVIDO: ${nomes}.`);
+      }
     } catch (err) {
       console.error('Erro ao excluir orçamentos:', err);
-      setError('Erro ao excluir orçamentos selecionados');
+      setError(err.response?.data?.message || 'Erro ao excluir orçamentos selecionados');
     } finally {
       setDeleting(false);
     }
