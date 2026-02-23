@@ -38,7 +38,7 @@ import {
   DeleteSweep,
   LocalShipping,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { orcamentoService } from '../../services/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -79,10 +79,23 @@ const OrcamentoList = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     loadOrcamentos();
   }, []);
+
+  // Restaura a página atual quando voltamos da tela de detalhes
+  useEffect(() => {
+    if (location.state) {
+      if (typeof location.state.page === 'number') {
+        setPage(location.state.page);
+      }
+      if (typeof location.state.rowsPerPage === 'number') {
+        setRowsPerPage(location.state.rowsPerPage);
+      }
+    }
+  }, [location.state]);
 
   const loadOrcamentos = async () => {
     try {
@@ -113,7 +126,12 @@ const OrcamentoList = () => {
   };
 
   const handleView = () => {
-    navigate(`/orcamentos/${selectedOrcamento._id}`);
+    navigate(`/orcamentos/${selectedOrcamento._id}`, {
+      state: {
+        page,
+        rowsPerPage,
+      },
+    });
     handleMenuClose();
   };
 

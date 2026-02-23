@@ -32,7 +32,7 @@ import {
   LocalShipping,
   ContentCopy,
 } from '@mui/icons-material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { orcamentoService } from '../../services/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -60,6 +60,7 @@ const StatusChip = ({ status }) => {
 const OrcamentoDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [orcamento, setOrcamento] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -291,7 +292,18 @@ const OrcamentoDetail = () => {
         <Box display="flex" gap={2}>
           <Button
             variant="outlined"
-            onClick={() => navigate('/orcamentos')}
+            onClick={() => {
+              if (location.state && (typeof location.state.page === 'number' || typeof location.state.rowsPerPage === 'number')) {
+                navigate('/orcamentos', {
+                  state: {
+                    page: typeof location.state.page === 'number' ? location.state.page : 0,
+                    rowsPerPage: typeof location.state.rowsPerPage === 'number' ? location.state.rowsPerPage : 10,
+                  },
+                });
+              } else {
+                navigate('/orcamentos');
+              }
+            }}
           >
             Voltar
           </Button>
