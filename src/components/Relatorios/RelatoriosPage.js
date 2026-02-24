@@ -23,8 +23,9 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  TablePagination,
 } from '@mui/material';
-import { PictureAsPdf, Payment as PaymentIcon } from '@mui/icons-material';
+import { PictureAsPdf, Payment as PaymentIcon, Search } from '@mui/icons-material';
 import { orcamentoService } from '../../services/api';
 
 const formatCurrency = (value) =>
@@ -41,12 +42,26 @@ const RelatoriosPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [orcamentos, setOrcamentos] = useState([]);
+  const [filteredOrcamentos, setFilteredOrcamentos] = useState([]);
   const [summary, setSummary] = useState({ total: 0, totalValorPago: 0, totalValorFinal: 0 });
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [paymentDialog, setPaymentDialog] = useState({ open: false, orcamento: null, valor: '' });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const applyFilter = (list, term) => {
+    if (!term) return list;
+    const lower = term.toLowerCase();
+    return list.filter((orc) => {
+      const clienteNome = (orc.clienteNome || orc.clienteId?.nome || '').toLowerCase();
+      const jobName = (orc.jobName || '').toLowerCase();
+      return jobName.includes(lower) || clienteNome.includes(lower);
+    });
+  };
 
   const updateSummary = (orcamentosList) => {
     const totalValorPago = orcamentosList.reduce((acc, item) => acc + (item.valorPago || 0), 0);
@@ -87,7 +102,9 @@ const RelatoriosPage = () => {
       const registros = response?.data?.data || [];
 
       setOrcamentos(registros);
+      setFilteredOrcamentos(applyFilter(registros, searchTerm));
       updateSummary(registros);
+      setPage(0);
     } catch (err) {
       console.error('Erro ao carregar relatório de orçamentos confirmados:', err);
       setError('Não foi possível carregar o relatório. Verifique a conexão com o servidor.');
@@ -102,6 +119,22 @@ const RelatoriosPage = () => {
 
   const handleGenerateReport = () => {
     fetchReport(selectedMonth);
+  };
+
+  const handleSearchChange = (event) => {
+    const term = event.target.value.toLowerCase();
+    setSearchTerm(term);
+    setPage(0);
+    setFilteredOrcamentos(applyFilter(orcamentos, term));
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const handleOpenPaymentDialog = (orcamento) => {
@@ -186,6 +219,11 @@ const RelatoriosPage = () => {
       setDownloading(false);
     }
   };
+
+  const currentPageOrcamentos = filteredOrcamentos.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   return (
     <Box>
@@ -280,7 +318,21 @@ const RelatoriosPage = () => {
             </Grid>
           </Grid>
 
-          {orcamentos.length === 0 ? (
+          {/* Busca */}
+          <Box mb={3}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Buscar por job ou nome do cliente..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              InputProps={{
+                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+            />
+          </Box>
+
+          {filteredOrcamentos.length === 0 ? (
             <Alert severity="info">Nenhum orçamento confirmado ou devolvido encontrado para o período selecionado.</Alert>
           ) : (
             <TableContainer component={Paper} sx={{ mb: 4 }}>
@@ -298,7 +350,7 @@ const RelatoriosPage = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {orcamentos.map((orcamento) => (
+                  {currentPageOrcamentos.map((orcamento) => (
                     <TableRow key={orcamento._id} hover>
                       <TableCell>{orcamento.numero}</TableCell>
                       <TableCell>
@@ -344,6 +396,17 @@ const RelatoriosPage = () => {
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={filteredOrcamentos.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                labelRowsPerPage="Linhas por página:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+              />
             </TableContainer>
           )}
         </>
