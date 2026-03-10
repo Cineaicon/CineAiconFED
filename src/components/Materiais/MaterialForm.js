@@ -48,6 +48,7 @@ const MaterialForm = () => {
       custoDiario: '0',
       quantidadeDisponivel: 0,
       quantidadeInventario: 0,
+      peso: '',
     }
   });
 
@@ -81,6 +82,7 @@ const MaterialForm = () => {
         custoDiario: material.custoDiario || '0',
         quantidadeDisponivel: material.quantidadeDisponivel || 0,
         quantidadeInventario: material.quantidadeInventario != null ? material.quantidadeInventario : 0,
+        peso: material.peso != null && material.peso !== '' ? material.peso : '',
       });
     } catch (err) {
       console.error('Erro ao carregar material:', err);
@@ -278,6 +280,19 @@ const MaterialForm = () => {
                   error={!!errors.quantidadeInventario}
                   helperText="Quantidade total deste equipamento na casa (levantamento físico). Este valor alimenta a aba Inventário e o PDF de inventário. Pode ser preenchido agora ou depois na lista de Inventário."
                   inputProps={{ min: '0' }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Peso (kg)"
+                  {...control.register('peso', { 
+                    min: { value: 0, message: 'Peso deve ser maior ou igual a 0' }
+                  })}
+                  error={!!errors.peso}
+                  helperText={errors.peso?.message || 'Peso unitário em kg. Usado para calcular o peso total do orçamento.'}
+                  inputProps={{ step: '0.01', min: '0' }}
                 />
               </Grid>
             </Grid>

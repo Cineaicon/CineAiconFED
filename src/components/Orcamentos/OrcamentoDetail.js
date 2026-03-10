@@ -195,15 +195,16 @@ const OrcamentoDetail = () => {
     }
   };
 
-  // Calcular desconto total (descontos de itens + desconto geral)
-  const { subtotal, descontoItens, descontoGeral, descontoTotal, totalFinal } = useMemo(() => {
+  // Calcular desconto total (descontos de itens + desconto geral) e peso total
+  const { subtotal, descontoItens, descontoGeral, descontoTotal, totalFinal, pesoTotal } = useMemo(() => {
     if (!orcamento || !orcamento.itens) {
       return {
         subtotal: 0,
         descontoItens: 0,
         descontoGeral: 0,
         descontoTotal: 0,
-        totalFinal: 0
+        totalFinal: 0,
+        pesoTotal: 0
       };
     }
 
@@ -217,6 +218,13 @@ const OrcamentoDetail = () => {
       const valorTotalItem = parseFloat(item.valorTotal || item.valorUnitario * item.quantidade * item.dias || 0);
       const valorFinalItem = parseFloat(item.valorFinal || valorTotalItem);
       return sum + (valorTotalItem - valorFinalItem);
+    }, 0);
+
+    // Peso total: soma de (quantidade * peso unitário) de cada item
+    const pesoTotalCalculado = orcamento.itens.reduce((sum, item) => {
+      const pesoUnit = item.peso != null && item.peso !== '' ? parseFloat(item.peso) : 0;
+      const qty = Number(item.quantidade) || 0;
+      return sum + qty * pesoUnit;
     }, 0);
 
     // Calcular desconto geral
@@ -238,7 +246,8 @@ const OrcamentoDetail = () => {
       descontoItens: Number(descontoItensCalculado.toFixed(2)),
       descontoGeral: Number(descontoGeralCalculado.toFixed(2)),
       descontoTotal: Number(descontoTotalCalculado.toFixed(2)),
-      totalFinal: Number(Math.max(totalFinalCalculado, 0).toFixed(2))
+      totalFinal: Number(Math.max(totalFinalCalculado, 0).toFixed(2)),
+      pesoTotal: Number(pesoTotalCalculado.toFixed(2))
     };
   }, [orcamento]);
 
@@ -564,6 +573,16 @@ const OrcamentoDetail = () => {
                 </Typography>
                 <Typography variant="h5" fontWeight="bold">
                   R$ {totalFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box textAlign="center" p={2} bgcolor="grey.50" borderRadius={1}>
+                <Typography variant="body2" color="text.secondary">
+                  Peso total
+                </Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {pesoTotal > 0 ? `${pesoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg` : '-'}
                 </Typography>
               </Box>
             </Grid>
