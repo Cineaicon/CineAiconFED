@@ -23,6 +23,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   DataGrid,
@@ -98,10 +102,21 @@ const MaterialList = () => {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [loadingPdfInventario, setLoadingPdfInventario] = useState(false);
   const [salvandoInventarioId, setSalvandoInventarioId] = useState(null);
+  const [listaPdfDialogOpen, setListaPdfDialogOpen] = useState(false);
+  const [categoriaListaPdf, setCategoriaListaPdf] = useState('');
+  const [categorias, setCategorias] = useState([]);
 
   useEffect(() => {
     loadMateriais();
   }, []);
+
+  useEffect(() => {
+    if (listaPdfDialogOpen) {
+      materialService.getCategorias()
+        .then((res) => setCategorias(res.data || []))
+        .catch(() => setCategorias([]));
+    }
+  }, [listaPdfDialogOpen]);
 
   const loadMateriais = async () => {
     try {
@@ -125,19 +140,27 @@ const MaterialList = () => {
     }
   };
 
+  const handleOpenListaPdfDialog = () => {
+    setCategoriaListaPdf('');
+    setListaPdfDialogOpen(true);
+  };
+
   const handleDownloadListaPdf = async () => {
     try {
       setLoadingPdf(true);
-      const { data } = await materialService.downloadListaPdf();
+      const params = categoriaListaPdf ? { categoria: categoriaListaPdf } : {};
+      const { data } = await materialService.downloadListaPdf(params);
+      const sufixo = categoriaListaPdf ? `-${categoriaListaPdf.replace(/\s+/g, '-')}` : '';
       const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `lista-materiais-${new Date().toISOString().slice(0, 10)}.pdf`);
+      link.setAttribute('download', `lista-materiais${sufixo}-${new Date().toISOString().slice(0, 10)}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
       setSnackbar({ open: true, message: 'Lista de materiais baixada com sucesso!', severity: 'success' });
+      setListaPdfDialogOpen(false);
     } catch (error) {
       setSnackbar({
         open: true,
@@ -328,10 +351,10 @@ const MaterialList = () => {
             <Button
               variant="outlined"
               startIcon={<PdfIcon />}
-              onClick={handleDownloadListaPdf}
+              onClick={handleOpenListaPdfDialog}
               disabled={loadingPdf}
             >
-              {loadingPdf ? 'Gerando...' : 'Lista em PDF'}
+              Lista em PDF
             </Button>
             <Button
               variant="contained"
@@ -449,6 +472,40 @@ const MaterialList = () => {
           </>
         )}
       </Paper>
+
+      {/* Dialog Gerar Lista em PDF */}
+      <Dialog open={listaPdfDialogOpen} onClose={() => setListaPdfDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Gerar Lista de Materiais em PDF</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Escolha uma categoria para filtrar a lista ou deixe "Todas" para incluir todos os materiais.
+          </DialogContentText>
+          <FormControl fullWidth>
+            <InputLabel id="lista-pdf-categoria">Categoria</InputLabel>
+            <Select
+              labelId="lista-pdf-categoria"
+              value={categoriaListaPdf}
+              label="Categoria"
+              onChange={(e) => setCategoriaListaPdf(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>Todas as categorias</em>
+              </MenuItem>
+              {categorias.map((cat) => (
+                <MenuItem key={cat} value={cat}>
+                  {cat}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setListaPdfDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={handleDownloadListaPdf} variant="contained" startIcon={<PdfIcon />} disabled={loadingPdf}>
+            {loadingPdf ? 'Gerando...' : 'Gerar PDF'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

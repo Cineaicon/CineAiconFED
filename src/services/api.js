@@ -45,7 +45,7 @@ export const materialService = {
   update: (id, data) => api.put(`/materiais/${id}`, data),
   delete: (id) => api.delete(`/materiais/${id}`),
   getCategorias: () => api.get('/materiais/categorias/lista'),
-  downloadListaPdf: () => api.get('/materiais/lista/pdf', { responseType: 'blob' }),
+  downloadListaPdf: (params) => api.get('/materiais/lista/pdf', { params, responseType: 'blob' }),
   downloadInventarioPdf: () => api.get('/materiais/inventario/pdf', { responseType: 'blob' }),
 };
 
