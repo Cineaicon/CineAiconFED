@@ -103,7 +103,9 @@ const MaterialList = () => {
   const [loadingPdfInventario, setLoadingPdfInventario] = useState(false);
   const [salvandoInventarioId, setSalvandoInventarioId] = useState(null);
   const [listaPdfDialogOpen, setListaPdfDialogOpen] = useState(false);
+  const [inventarioPdfDialogOpen, setInventarioPdfDialogOpen] = useState(false);
   const [categoriaListaPdf, setCategoriaListaPdf] = useState('');
+  const [categoriaInventarioPdf, setCategoriaInventarioPdf] = useState('');
   const [categorias, setCategorias] = useState([]);
 
   useEffect(() => {
@@ -111,12 +113,12 @@ const MaterialList = () => {
   }, []);
 
   useEffect(() => {
-    if (listaPdfDialogOpen) {
+    if (listaPdfDialogOpen || inventarioPdfDialogOpen) {
       materialService.getCategorias()
         .then((res) => setCategorias(res.data || []))
         .catch(() => setCategorias([]));
     }
-  }, [listaPdfDialogOpen]);
+  }, [listaPdfDialogOpen, inventarioPdfDialogOpen]);
 
   const loadMateriais = async () => {
     try {
@@ -143,6 +145,11 @@ const MaterialList = () => {
   const handleOpenListaPdfDialog = () => {
     setCategoriaListaPdf('');
     setListaPdfDialogOpen(true);
+  };
+
+  const handleOpenInventarioPdfDialog = () => {
+    setCategoriaInventarioPdf('');
+    setInventarioPdfDialogOpen(true);
   };
 
   const handleDownloadListaPdf = async () => {
@@ -175,16 +182,19 @@ const MaterialList = () => {
   const handleDownloadInventarioPdf = async () => {
     try {
       setLoadingPdfInventario(true);
-      const { data } = await materialService.downloadInventarioPdf();
+      const params = categoriaInventarioPdf ? { categoria: categoriaInventarioPdf } : {};
+      const { data } = await materialService.downloadInventarioPdf(params);
+      const sufixo = categoriaInventarioPdf ? `-${categoriaInventarioPdf.replace(/\s+/g, '-')}` : '';
       const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `lista-inventario-${new Date().toISOString().slice(0, 10)}.pdf`);
+      link.setAttribute('download', `lista-inventario${sufixo}-${new Date().toISOString().slice(0, 10)}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
       setSnackbar({ open: true, message: 'Lista de inventário baixada com sucesso!', severity: 'success' });
+      setInventarioPdfDialogOpen(false);
     } catch (error) {
       setSnackbar({
         open: true,
@@ -418,10 +428,10 @@ const MaterialList = () => {
               <Button
                 variant="outlined"
                 startIcon={<PdfIcon />}
-                onClick={handleDownloadInventarioPdf}
+                onClick={handleOpenInventarioPdfDialog}
                 disabled={loadingPdfInventario}
               >
-                {loadingPdfInventario ? 'Gerando...' : 'PDF Inventário'}
+                PDF Inventário
               </Button>
             </Box>
             <TextField
@@ -503,6 +513,40 @@ const MaterialList = () => {
           <Button onClick={() => setListaPdfDialogOpen(false)}>Cancelar</Button>
           <Button onClick={handleDownloadListaPdf} variant="contained" startIcon={<PdfIcon />} disabled={loadingPdf}>
             {loadingPdf ? 'Gerando...' : 'Gerar PDF'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={inventarioPdfDialogOpen} onClose={() => setInventarioPdfDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Gerar Inventário em PDF</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Escolha uma categoria para filtrar o inventário ou deixe "Todas" para incluir todos os materiais.
+          </DialogContentText>
+          <FormControl fullWidth>
+            <InputLabel id="inventario-pdf-categoria">Categoria</InputLabel>
+            <Select
+              labelId="inventario-pdf-categoria"
+              value={categoriaInventarioPdf}
+              label="Categoria"
+              onChange={(e) => setCategoriaInventarioPdf(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>Todas as categorias</em>
+              </MenuItem>
+              {categorias.map((cat) => (
+                <MenuItem key={cat} value={cat}>
+                  {cat}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInventarioPdfDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={handleDownloadInventarioPdf} variant="contained" startIcon={<PdfIcon />} disabled={loadingPdfInventario}>
+            {loadingPdfInventario ? 'Gerando...' : 'Gerar PDF'}
           </Button>
         </DialogActions>
       </Dialog>

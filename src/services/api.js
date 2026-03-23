@@ -46,7 +46,7 @@ export const materialService = {
   delete: (id) => api.delete(`/materiais/${id}`),
   getCategorias: () => api.get('/materiais/categorias/lista'),
   downloadListaPdf: (params) => api.get('/materiais/lista/pdf', { params, responseType: 'blob' }),
-  downloadInventarioPdf: () => api.get('/materiais/inventario/pdf', { responseType: 'blob' }),
+  downloadInventarioPdf: (params) => api.get('/materiais/inventario/pdf', { params, responseType: 'blob' }),
 };
 
 // Serviços para Orçamentos
