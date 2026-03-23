@@ -200,7 +200,6 @@ const MaterialForm = () => {
                   <Controller
                     name="categoria"
                     control={control}
-                    rules={{ required: 'Categoria é obrigatória' }}
                     render={({ field }) => (
                       <FormControl fullWidth error={!!errors.categoria}>
                         <InputLabel>Categoria</InputLabel>
@@ -209,15 +208,18 @@ const MaterialForm = () => {
                           label="Categoria"
                           value={field.value || ''}
                         >
+                          <MenuItem value="">
+                            <em>Sem categoria</em>
+                          </MenuItem>
                           {categorias.map((cat) => (
                             <MenuItem key={cat} value={cat}>
                               {cat}
                             </MenuItem>
                           ))}
                         </Select>
-                        {errors.categoria && (
-                          <FormHelperText>{errors.categoria.message}</FormHelperText>
-                        )}
+                        <FormHelperText>
+                          Opcional. Se não selecionar, o material será salvo sem categoria.
+                        </FormHelperText>
                       </FormControl>
                     )}
                   />
