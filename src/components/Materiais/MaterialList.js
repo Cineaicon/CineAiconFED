@@ -161,17 +161,17 @@ const MaterialList = () => {
       const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `lista-materiais${sufixo}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      link.setAttribute('download', `lista-equipamentos${sufixo}-${new Date().toISOString().slice(0, 10)}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      setSnackbar({ open: true, message: 'Lista de materiais baixada com sucesso!', severity: 'success' });
+      setSnackbar({ open: true, message: 'Lista de equipamentos baixada com sucesso!', severity: 'success' });
       setListaPdfDialogOpen(false);
     } catch (error) {
       setSnackbar({
         open: true,
-        message: 'Erro ao baixar PDF: ' + (error.response?.data?.message || error.message),
+        message: 'Erro ao baixar PDF da lista de equipamentos: ' + (error.response?.data?.message || error.message),
         severity: 'error',
       });
     } finally {
@@ -188,17 +188,17 @@ const MaterialList = () => {
       const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `lista-inventario${sufixo}-${new Date().toISOString().slice(0, 10)}.pdf`);
+      link.setAttribute('download', `inventario-equipamentos${sufixo}-${new Date().toISOString().slice(0, 10)}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      setSnackbar({ open: true, message: 'Lista de inventário baixada com sucesso!', severity: 'success' });
+      setSnackbar({ open: true, message: 'Inventário de equipamentos baixado com sucesso!', severity: 'success' });
       setInventarioPdfDialogOpen(false);
     } catch (error) {
       setSnackbar({
         open: true,
-        message: 'Erro ao baixar PDF do inventário: ' + (error.response?.data?.message || error.message),
+        message: 'Erro ao baixar PDF do inventário de equipamentos: ' + (error.response?.data?.message || error.message),
         severity: 'error',
       });
     } finally {
@@ -364,7 +364,7 @@ const MaterialList = () => {
               onClick={handleOpenListaPdfDialog}
               disabled={loadingPdf}
             >
-              Lista em PDF
+              Lista de equipamentos (PDF)
             </Button>
             <Button
               variant="contained"
@@ -431,7 +431,7 @@ const MaterialList = () => {
                 onClick={handleOpenInventarioPdfDialog}
                 disabled={loadingPdfInventario}
               >
-                PDF Inventário
+                Inventário de equipamentos (PDF)
               </Button>
             </Box>
             <TextField
@@ -485,10 +485,10 @@ const MaterialList = () => {
 
       {/* Dialog Gerar Lista em PDF */}
       <Dialog open={listaPdfDialogOpen} onClose={() => setListaPdfDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Gerar Lista de Materiais em PDF</DialogTitle>
+        <DialogTitle>Gerar lista de equipamentos em PDF</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            Escolha uma categoria para filtrar a lista ou deixe "Todas" para incluir todos os materiais.
+            Escolha uma categoria para filtrar a lista ou deixe "Todas" para incluir todos os equipamentos.
           </DialogContentText>
           <FormControl fullWidth>
             <InputLabel id="lista-pdf-categoria">Categoria</InputLabel>
@@ -519,10 +519,10 @@ const MaterialList = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={inventarioPdfDialogOpen} onClose={() => setInventarioPdfDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Gerar Inventário em PDF</DialogTitle>
+        <DialogTitle>Gerar inventário de equipamentos em PDF</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            Escolha uma categoria para filtrar o inventário ou deixe "Todas" para incluir todos os materiais.
+            Escolha uma categoria para filtrar o inventário ou deixe "Todas" para incluir todos os equipamentos.
           </DialogContentText>
           <FormControl fullWidth>
             <InputLabel id="inventario-pdf-categoria">Categoria</InputLabel>
