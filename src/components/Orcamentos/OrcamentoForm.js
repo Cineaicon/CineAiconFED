@@ -391,7 +391,8 @@ const OrcamentoForm = () => {
     if (!item) return 0;
 
     const material = getMaterialById(item.materialId);
-    const valorUnitario = parseNumber(material?.custoDiario ?? item.valorUnitario, 0);
+    // Mesma regra do submit: valor do item (snapshot do orçamento) prevalece sobre o catálogo atual
+    const valorUnitario = parseNumber(item.valorUnitario ?? material?.custoDiario, 0);
     const quantidade = parseNumber(item.quantidade || 0, 0);
     const dias = parseNumber(item.dias || 0, 0);
 
@@ -565,7 +566,7 @@ const OrcamentoForm = () => {
 
     const categoria = material?.categoria || 'Sem categoria';
     const equipamento = material?.equipamento || 'Selecione um material';
-    const valorDiaria = parseNumber(material?.custoDiario ?? item.valorUnitario, 0);
+    const valorDiaria = parseNumber(item.valorUnitario ?? material?.custoDiario, 0);
     const totalItem = calculateItemTotal(item);
 
     return (
