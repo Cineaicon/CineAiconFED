@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -53,15 +53,10 @@ const RelatoriosPage = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const applyFilter = (list, term) => {
-    if (!term) return list;
-    const lower = term.toLowerCase();
-    return list.filter((orc) => {
-      const clienteNome = (orc.clienteNome || orc.clienteId?.nome || '').toLowerCase();
-      const jobName = (orc.jobName || '').toLowerCase();
-      return jobName.includes(lower) || clienteNome.includes(lower);
-    });
-  };
+  /** Snapshot do último relatório por mês (para voltar ao limpar a busca). */
+  const orcamentosMesRef = useRef([]);
+  const prevHadGlobalSearchRef = useRef(false);
+  const fetchSeqRef = useRef(0);
 
   const updateSummary = (orcamentosList) => {
     const totalValorPago = orcamentosList.reduce((acc, item) => acc + (item.valorPago || 0), 0);
@@ -76,11 +71,14 @@ const RelatoriosPage = () => {
   const fetchReport = async (monthValue) => {
       if (!monthValue) {
         setOrcamentos([]);
+        setFilteredOrcamentos([]);
+        orcamentosMesRef.current = [];
         updateSummary([]);
         return;
       }
 
     try {
+      const seq = ++fetchSeqRef.current;
       setLoading(true);
       setError(null);
       setDownloadError(null);
@@ -101,8 +99,12 @@ const RelatoriosPage = () => {
 
       const registros = response?.data?.data || [];
 
+      if (seq !== fetchSeqRef.current) return;
+
+      orcamentosMesRef.current = registros;
+      prevHadGlobalSearchRef.current = false;
       setOrcamentos(registros);
-      setFilteredOrcamentos(applyFilter(registros, searchTerm));
+      setFilteredOrcamentos(registros);
       updateSummary(registros);
       setPage(0);
     } catch (err) {
@@ -118,14 +120,64 @@ const RelatoriosPage = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateReport = () => {
+    setSearchTerm('');
+    prevHadGlobalSearchRef.current = false;
     fetchReport(selectedMonth);
   };
 
+  /** Busca global por job ou cliente (sem filtro de mês). */
+  const fetchGlobalSearch = async (term) => {
+    try {
+      const seq = ++fetchSeqRef.current;
+      setLoading(true);
+      setError(null);
+      const response = await orcamentoService.getAll({
+        status: 'CONFIRMADO,DEVOLVIDO',
+        busca: term,
+        limit: 3000,
+        page: 1,
+        sort: '-dataCriacao',
+      });
+      const registros = response?.data?.data || [];
+      if (seq !== fetchSeqRef.current) return;
+
+      prevHadGlobalSearchRef.current = true;
+      setOrcamentos(registros);
+      setFilteredOrcamentos(registros);
+      updateSummary(registros);
+      setPage(0);
+    } catch (err) {
+      console.error('Erro na busca global de orçamentos:', err);
+      setError('Não foi possível buscar orçamentos. Verifique a conexão com o servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const q = searchTerm.trim();
+    const id = setTimeout(() => {
+      if (!q) {
+        if (prevHadGlobalSearchRef.current && orcamentosMesRef.current.length > 0) {
+          fetchSeqRef.current += 1;
+          prevHadGlobalSearchRef.current = false;
+          const mes = orcamentosMesRef.current;
+          setOrcamentos(mes);
+          setFilteredOrcamentos(mes);
+          updateSummary(mes);
+          setPage(0);
+        }
+        return;
+      }
+      fetchGlobalSearch(q);
+    }, 400);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
   const handleSearchChange = (event) => {
-    const term = event.target.value.toLowerCase();
-    setSearchTerm(term);
+    setSearchTerm(event.target.value);
     setPage(0);
-    setFilteredOrcamentos(applyFilter(orcamentos, term));
   };
 
   const handleChangePage = (event, newPage) => {
@@ -164,15 +216,21 @@ const RelatoriosPage = () => {
         statusPagamento: valorPago >= (orcamento.valorFinal || 0) ? 'PAGO' : valorPago > 0 ? 'PARCIAL' : 'PENDENTE',
       });
 
-      // Atualizar lista local
-      const updatedOrcamentos = orcamentos.map((o) =>
-        o._id === orcamento._id
-          ? { ...o, valorPago, statusPagamento: valorPago >= (o.valorFinal || 0) ? 'PAGO' : valorPago > 0 ? 'PARCIAL' : 'PENDENTE' }
-          : o
-      );
-      
+      const patch = (o) => {
+        if (o._id !== orcamento._id) return o;
+        const sp =
+          valorPago >= (o.valorFinal || 0) ? 'PAGO' : valorPago > 0 ? 'PARCIAL' : 'PENDENTE';
+        return { ...o, valorPago, statusPagamento: sp };
+      };
+
+      const updatedMes = orcamentosMesRef.current.map(patch);
+      orcamentosMesRef.current = updatedMes;
+      const updatedOrcamentos = orcamentos.map(patch);
+      const updatedFiltrados = filteredOrcamentos.map(patch);
+
       setOrcamentos(updatedOrcamentos);
-      updateSummary(updatedOrcamentos);
+      setFilteredOrcamentos(updatedFiltrados);
+      updateSummary(searchTerm.trim() ? updatedFiltrados : updatedMes);
       handleClosePaymentDialog();
       
       setSnackbar({
@@ -231,8 +289,8 @@ const RelatoriosPage = () => {
         Relatórios
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        Consulte os orçamentos confirmados e devolvidos por mês. Cada linha representa um orçamento com os
-        principais dados financeiros. Apenas orçamentos já confirmados são exibidos.
+        Consulte os orçamentos confirmados e devolvidos por mês. A busca por job ou cliente ignora o mês e
+        inclui todas as datas. Os totais acima refletem o modo atual (mês do relatório ou resultado da busca).
       </Typography>
 
       <Card sx={{ mb: 3 }}>
@@ -290,7 +348,9 @@ const RelatoriosPage = () => {
               <Card>
                 <CardContent>
                   <Typography color="text.secondary" gutterBottom>
-                    Orçamentos (Confirmados + Devolvidos)
+                    {searchTerm.trim()
+                      ? 'Orçamentos encontrados (todas as datas)'
+                      : 'Orçamentos (Confirmados + Devolvidos)'}
                   </Typography>
                   <Typography variant="h5">{summary.total}</Typography>
                 </CardContent>
@@ -300,7 +360,7 @@ const RelatoriosPage = () => {
               <Card>
                 <CardContent>
                   <Typography color="text.secondary" gutterBottom>
-                    Valor pago no mês
+                    {searchTerm.trim() ? 'Valor pago (busca)' : 'Valor pago no mês'}
                   </Typography>
                   <Typography variant="h5">{formatCurrency(summary.totalValorPago)}</Typography>
                 </CardContent>
@@ -310,7 +370,7 @@ const RelatoriosPage = () => {
               <Card>
                 <CardContent>
                   <Typography color="text.secondary" gutterBottom>
-                    Valor final dos orçamentos
+                    {searchTerm.trim() ? 'Valor final (busca)' : 'Valor final dos orçamentos'}
                   </Typography>
                   <Typography variant="h5">{formatCurrency(summary.totalValorFinal)}</Typography>
                 </CardContent>
@@ -333,7 +393,11 @@ const RelatoriosPage = () => {
           </Box>
 
           {filteredOrcamentos.length === 0 ? (
-            <Alert severity="info">Nenhum orçamento confirmado ou devolvido encontrado para o período selecionado.</Alert>
+            <Alert severity="info">
+              {searchTerm.trim()
+                ? 'Nenhum orçamento confirmado ou devolvido encontrado para esta busca.'
+                : 'Nenhum orçamento confirmado ou devolvido encontrado para o período selecionado.'}
+            </Alert>
           ) : (
             <TableContainer component={Paper} sx={{ mb: 4 }}>
               <Table>
