@@ -289,8 +289,9 @@ const RelatoriosPage = () => {
         Relatórios
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        Consulte os orçamentos confirmados e devolvidos por mês. A busca por job ou cliente ignora o mês e
-        inclui todas as datas. Os totais acima refletem o modo atual (mês do relatório ou resultado da busca).
+        Consulte os orçamentos confirmados e devolvidos por mês. A busca ignora o mês e percorre todas as datas,
+        incluindo job, cliente, número, responsável e campos do cabeçalho (produtor, diretor, eletricista, etc.).
+        Os totais acima refletem o modo atual (mês do relatório ou resultado da busca).
       </Typography>
 
       <Card sx={{ mb: 3 }}>
@@ -383,7 +384,7 @@ const RelatoriosPage = () => {
             <TextField
               fullWidth
               variant="outlined"
-              placeholder="Buscar por job ou nome do cliente..."
+              placeholder="Job, cliente, nº ORC, produtor, eletricista, responsável..."
               value={searchTerm}
               onChange={handleSearchChange}
               InputProps={{
