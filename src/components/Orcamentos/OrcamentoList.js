@@ -298,7 +298,10 @@ const OrcamentoList = () => {
     const term = (searchTerm || '').trim();
     const debounceId = setTimeout(() => {
       if (!term) {
-        searchSeqRef.current += 1;
+        // Não cancelar a carga inicial quando ainda não há base carregada.
+        if (allOrcamentosRef.current.length > 0) {
+          searchSeqRef.current += 1;
+        }
         const base = allOrcamentosRef.current;
         setOrcamentos(base);
         setFilteredOrcamentos(base);
