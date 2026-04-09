@@ -384,7 +384,7 @@ const RelatoriosPage = () => {
             <TextField
               fullWidth
               variant="outlined"
-              placeholder="Job, cliente, nº ORC, produtor, eletricista, responsável..."
+              placeholder="Job, cliente, nº ORC, produtor, eletricista, responsável ou valor..."
               value={searchTerm}
               onChange={handleSearchChange}
               InputProps={{

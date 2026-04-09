@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -78,6 +78,8 @@ const OrcamentoList = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const allOrcamentosRef = useRef([]);
+  const searchSeqRef = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -100,16 +102,45 @@ const OrcamentoList = () => {
   const loadOrcamentos = async () => {
     try {
       setLoading(true);
-      const response = await orcamentoService.getAll({ limit: 1000 });
+      const seq = ++searchSeqRef.current;
+      const response = await orcamentoService.getAll({ limit: 5000, page: 1, sort: '-dataCriacao' });
       // Ordenar por data de criação decrescente (mais recentes primeiro)
       const sortedOrcamentos = (response.data.data || []).sort((a, b) => 
         new Date(b.createdAt || b.dataCriacao) - new Date(a.createdAt || a.dataCriacao)
       );
+      if (seq !== searchSeqRef.current) return;
+      allOrcamentosRef.current = sortedOrcamentos;
       setOrcamentos(sortedOrcamentos);
       setFilteredOrcamentos(sortedOrcamentos);
     } catch (err) {
       console.error('Erro ao carregar orçamentos:', err);
       setError('Erro ao carregar orçamentos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const buscarOrcamentos = async (term) => {
+    try {
+      const seq = ++searchSeqRef.current;
+      setLoading(true);
+      setError(null);
+      const response = await orcamentoService.getAll({
+        limit: 5000,
+        page: 1,
+        sort: '-dataCriacao',
+        busca: term,
+      });
+      if (seq !== searchSeqRef.current) return;
+      const registros = (response.data.data || []).sort((a, b) =>
+        new Date(b.createdAt || b.dataCriacao) - new Date(a.createdAt || a.dataCriacao)
+      );
+      setOrcamentos(registros);
+      setFilteredOrcamentos(registros);
+      setPage(0);
+    } catch (err) {
+      console.error('Erro ao buscar orçamentos:', err);
+      setError('Erro ao buscar orçamentos');
     } finally {
       setLoading(false);
     }
@@ -258,24 +289,29 @@ const OrcamentoList = () => {
   };
 
   const handleSearch = (event) => {
-    const term = event.target.value.toLowerCase();
-    setSearchTerm(term);
+    setSearchTerm(event.target.value);
     setPage(0); // Resetar para primeira página ao buscar
-
-    if (term === '') {
-      setFilteredOrcamentos(orcamentos);
-    } else {
-      const clienteNome = (orcamento) =>
-        (orcamento.clienteNome || orcamento.clienteId?.nome || '').toLowerCase();
-      const filtered = orcamentos.filter(orcamento =>
-        orcamento.jobName?.toLowerCase().includes(term) ||
-        clienteNome(orcamento).includes(term)
-      );
-      setFilteredOrcamentos(filtered);
-    }
-    // Limpar seleção ao buscar
-    setSelectedIds([]);
+    setSelectedIds([]); // Limpar seleção ao buscar
   };
+
+  useEffect(() => {
+    const term = (searchTerm || '').trim();
+    const debounceId = setTimeout(() => {
+      if (!term) {
+        searchSeqRef.current += 1;
+        const base = allOrcamentosRef.current;
+        setOrcamentos(base);
+        setFilteredOrcamentos(base);
+        setLoading(false);
+        setPage(0);
+        return;
+      }
+      buscarOrcamentos(term);
+    }, 350);
+
+    return () => clearTimeout(debounceId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
 
   const handleSelectAll = (event) => {
     if (event.target.checked) {
@@ -395,7 +431,7 @@ const OrcamentoList = () => {
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Buscar por job ou nome do cliente..."
+          placeholder="Job, cliente, produtor, elétrica, nº ORC ou valor..."
           value={searchTerm}
           onChange={handleSearch}
           InputProps={{
