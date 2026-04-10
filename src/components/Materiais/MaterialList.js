@@ -95,28 +95,8 @@ const MaterialList = () => {
   const [materiais, setMateriais] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchInput, setSearchInput] = useState('');
   const [tabAtiva, setTabAtiva] = useState(0);
   const [searchInventario, setSearchInventario] = useState('');
-  const [searchInventarioInput, setSearchInventarioInput] = useState('');
-  const handleSearchMateriaisChange = (event) => {
-    setSearchInput(event.target.value);
-  };
-
-  const handleSearchMateriaisKeyDown = (event) => {
-    if (event.key !== 'Enter') return;
-    setSearchTerm(searchInput);
-  };
-
-  const handleSearchInventarioChange = (event) => {
-    setSearchInventarioInput(event.target.value);
-  };
-
-  const handleSearchInventarioKeyDown = (event) => {
-    if (event.key !== 'Enter') return;
-    setSearchInventario(searchInventarioInput);
-  };
-
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [loadingPdf, setLoadingPdf] = useState(false);
@@ -407,9 +387,8 @@ const MaterialList = () => {
               fullWidth
               variant="outlined"
               placeholder="Buscar por categoria ou equipamento..."
-              value={searchInput}
-              onChange={handleSearchMateriaisChange}
-              onKeyDown={handleSearchMateriaisKeyDown}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
               }}
@@ -460,9 +439,8 @@ const MaterialList = () => {
               size="small"
               variant="outlined"
               placeholder="Buscar por categoria ou equipamento..."
-              value={searchInventarioInput}
-              onChange={handleSearchInventarioChange}
-              onKeyDown={handleSearchInventarioKeyDown}
+              value={searchInventario}
+              onChange={(e) => setSearchInventario(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
               }}

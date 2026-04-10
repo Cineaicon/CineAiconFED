@@ -47,17 +47,7 @@ function ColaboradorList() {
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchInput, setSearchInput] = useState('');
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
-  const handleSearchChange = (event) => {
-    setSearchInput(event.target.value);
-  };
-
-  const handleSearchKeyDown = (event) => {
-    if (event.key !== 'Enter') return;
-    setSearchTerm(searchInput);
-  };
-
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
@@ -200,9 +190,8 @@ function ColaboradorList() {
           fullWidth
           variant="outlined"
           placeholder="Buscar por nome, email ou cargo..."
-          value={searchInput}
-          onChange={handleSearchChange}
-          onKeyDown={handleSearchKeyDown}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
             startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
           }}

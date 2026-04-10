@@ -53,18 +53,8 @@ function FinanceiroList() {
   const [resumo, setResumo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchInput, setSearchInput] = useState('');
   const [paymentDialog, setPaymentDialog] = useState({ open: false, id: null });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const handleSearchChange = (event) => {
-    setSearchInput(event.target.value);
-  };
-
-  const handleSearchKeyDown = (event) => {
-    if (event.key !== 'Enter') return;
-    setSearchTerm(searchInput);
-  };
-
 
   useEffect(() => {
     loadData();
@@ -310,9 +300,8 @@ function FinanceiroList() {
           fullWidth
           variant="outlined"
           placeholder="Buscar por job ou cliente..."
-          value={searchInput}
-          onChange={handleSearchChange}
-          onKeyDown={handleSearchKeyDown}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
             startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
           }}
