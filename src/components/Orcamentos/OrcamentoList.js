@@ -75,6 +75,7 @@ const OrcamentoList = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -288,33 +289,30 @@ const OrcamentoList = () => {
     setSelectedIds([]); // Limpar seleção ao mudar quantidade por página
   };
 
-  const handleSearch = (event) => {
-    setSearchTerm(event.target.value);
-    setPage(0); // Resetar para primeira página ao buscar
-    setSelectedIds([]); // Limpar seleção ao buscar
+  const handleSearchChange = (event) => {
+    setSearchInput(event.target.value);
   };
 
-  useEffect(() => {
-    const term = (searchTerm || '').trim();
-    const debounceId = setTimeout(() => {
-      if (!term) {
-        // Não cancelar a carga inicial quando ainda não há base carregada.
-        if (allOrcamentosRef.current.length > 0) {
-          searchSeqRef.current += 1;
-        }
-        const base = allOrcamentosRef.current;
-        setOrcamentos(base);
-        setFilteredOrcamentos(base);
-        setLoading(false);
-        setPage(0);
-        return;
-      }
-      buscarOrcamentos(term);
-    }, 350);
+  const handleSearchKeyDown = (event) => {
+    if (event.key !== 'Enter') return;
+    const term = (searchInput || '').trim();
+    setSearchTerm(term);
+    setPage(0);
+    setSelectedIds([]);
 
-    return () => clearTimeout(debounceId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]);
+    if (!term) {
+      if (allOrcamentosRef.current.length > 0) {
+        searchSeqRef.current += 1;
+      }
+      const base = allOrcamentosRef.current;
+      setOrcamentos(base);
+      setFilteredOrcamentos(base);
+      setLoading(false);
+      return;
+    }
+
+    buscarOrcamentos(term);
+  };
 
   const handleSelectAll = (event) => {
     if (event.target.checked) {
@@ -435,8 +433,9 @@ const OrcamentoList = () => {
           fullWidth
           variant="outlined"
           placeholder="Job, cliente, produtor, elétrica, nº ORC ou valor..."
-          value={searchTerm}
-          onChange={handleSearch}
+          value={searchInput}
+          onChange={handleSearchChange}
+          onKeyDown={handleSearchKeyDown}
           InputProps={{
             startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
           }}

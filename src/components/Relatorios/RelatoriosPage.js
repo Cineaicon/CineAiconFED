@@ -50,6 +50,7 @@ const RelatoriosPage = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [paymentDialog, setPaymentDialog] = useState({ open: false, orcamento: null, valor: '' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -120,6 +121,7 @@ const RelatoriosPage = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateReport = () => {
+    setSearchInput('');
     setSearchTerm('');
     prevHadGlobalSearchRef.current = false;
     fetchReport(selectedMonth);
@@ -154,30 +156,30 @@ const RelatoriosPage = () => {
     }
   };
 
-  useEffect(() => {
-    const q = searchTerm.trim();
-    const id = setTimeout(() => {
-      if (!q) {
-        if (prevHadGlobalSearchRef.current && orcamentosMesRef.current.length > 0) {
-          fetchSeqRef.current += 1;
-          prevHadGlobalSearchRef.current = false;
-          const mes = orcamentosMesRef.current;
-          setOrcamentos(mes);
-          setFilteredOrcamentos(mes);
-          updateSummary(mes);
-          setPage(0);
-        }
-        return;
-      }
-      fetchGlobalSearch(q);
-    }, 400);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]);
-
   const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
+    setSearchInput(event.target.value);
     setPage(0);
+  };
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key !== 'Enter') return;
+    const q = (searchInput || '').trim();
+    setSearchTerm(q);
+    setPage(0);
+
+    if (!q) {
+      if (prevHadGlobalSearchRef.current && orcamentosMesRef.current.length > 0) {
+        fetchSeqRef.current += 1;
+        prevHadGlobalSearchRef.current = false;
+        const mes = orcamentosMesRef.current;
+        setOrcamentos(mes);
+        setFilteredOrcamentos(mes);
+        updateSummary(mes);
+      }
+      return;
+    }
+
+    fetchGlobalSearch(q);
   };
 
   const handleChangePage = (event, newPage) => {
@@ -385,8 +387,9 @@ const RelatoriosPage = () => {
               fullWidth
               variant="outlined"
               placeholder="Job, cliente, nº ORC, produtor, eletricista, responsável ou valor..."
-              value={searchTerm}
+              value={searchInput}
               onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
               InputProps={{
                 startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
               }}
