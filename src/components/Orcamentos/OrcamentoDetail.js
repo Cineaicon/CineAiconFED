@@ -41,7 +41,8 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { orcamentoService } from '../../services/api';
+import { orcamentoService, materialService } from '../../services/api';
+import Autocomplete from '@mui/material/Autocomplete';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -81,14 +82,17 @@ const OrcamentoDetail = () => {
     observacao: '',
   });
 
-  const extraVazio = { categoria: '', equipamento: '', quantidade: 1, dias: 1, custoDiario: '', descontoPercentual: 0 };
+  const extraVazio = { materialId: null, categoria: '', equipamento: '', quantidade: 1, dias: 1, custoDiario: '', descontoPercentual: 0 };
   const [extrasDialogOpen, setExtrasDialogOpen] = useState(false);
-  const [extraEditando, setExtraEditando] = useState(null); // null = novo, objeto = editar
+  const [extraEditando, setExtraEditando] = useState(null);
   const [extraForm, setExtraForm] = useState(extraVazio);
   const [extraLoading, setExtraLoading] = useState(false);
+  const [materiais, setMateriais] = useState([]);
+  const [materialSelecionado, setMaterialSelecionado] = useState(null);
 
   useEffect(() => {
     loadOrcamento();
+    materialService.getAll().then(r => setMateriais(r.data || [])).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -268,12 +272,16 @@ const OrcamentoDetail = () => {
   const handleAbrirNovoExtra = () => {
     setExtraEditando(null);
     setExtraForm(extraVazio);
+    setMaterialSelecionado(null);
     setExtrasDialogOpen(true);
   };
 
   const handleAbrirEditarExtra = (extra) => {
     setExtraEditando(extra);
+    const mat = materiais.find(m => m._id === (extra.materialId?._id || extra.materialId)) || null;
+    setMaterialSelecionado(mat);
     setExtraForm({
+      materialId: extra.materialId || null,
       categoria: extra.categoria || '',
       equipamento: extra.equipamento || '',
       quantidade: extra.quantidade || 1,
@@ -836,20 +844,52 @@ const OrcamentoDetail = () => {
         <DialogTitle>{extraEditando ? 'Editar Extra' : 'Incluir Extra'}</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              fullWidth
-              label="Categoria"
-              value={extraForm.categoria}
-              onChange={(e) => setExtraForm({ ...extraForm, categoria: e.target.value })}
-              placeholder="Ex: Transporte, Alimentação, Serviço..."
+            <Autocomplete
+              options={materiais}
+              value={materialSelecionado}
+              getOptionLabel={(op) => op ? `${op.equipamento} — R$ ${(op.custoDiario || 0).toFixed(2).replace('.', ',')}` : ''}
+              filterOptions={(options, { inputValue }) => {
+                const term = (inputValue || '').toLowerCase();
+                return options.filter(op =>
+                  (op.equipamento || '').toLowerCase().includes(term) ||
+                  (op.categoria || '').toLowerCase().includes(term)
+                );
+              }}
+              onChange={(_, newValue) => {
+                setMaterialSelecionado(newValue);
+                if (newValue) {
+                  setExtraForm(prev => ({
+                    ...prev,
+                    materialId: newValue._id,
+                    categoria: newValue.categoria || '',
+                    equipamento: newValue.equipamento || '',
+                    custoDiario: newValue.custoDiario ?? '',
+                  }));
+                } else {
+                  setExtraForm(prev => ({ ...prev, materialId: null, categoria: '', equipamento: '', custoDiario: '' }));
+                }
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Equipamento / Material" placeholder="Buscar por nome ou categoria..." />
+              )}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option._id}>
+                  <Box>
+                    <Typography variant="body2" fontWeight="bold">{option.equipamento}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.categoria} · R$ {(option.custoDiario || 0).toFixed(2).replace('.', ',')}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+              noOptionsText="Nenhum material encontrado"
             />
-            <TextField
-              fullWidth
-              label="Descrição"
-              value={extraForm.equipamento}
-              onChange={(e) => setExtraForm({ ...extraForm, equipamento: e.target.value })}
-              placeholder="Descreva o item extra"
-            />
+            {materialSelecionado && (
+              <Box display="flex" gap={1} flexWrap="wrap">
+                <Chip label={`Categoria: ${extraForm.categoria || '-'}`} size="small" variant="outlined" />
+                <Chip label={`Custo/dia: R$ ${Number(extraForm.custoDiario || 0).toFixed(2).replace('.', ',')}`} size="small" color="primary" variant="outlined" />
+              </Box>
+            )}
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <TextField
@@ -879,6 +919,7 @@ const OrcamentoDetail = () => {
                   value={extraForm.custoDiario}
                   onChange={(e) => setExtraForm({ ...extraForm, custoDiario: e.target.value })}
                   inputProps={{ min: 0, step: '0.01' }}
+                  helperText="Preenchido automaticamente pelo material"
                 />
               </Grid>
               <Grid item xs={6}>
