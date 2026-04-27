@@ -295,7 +295,6 @@ const OrcamentoList = () => {
   const handleSearchKeyDown = (event) => {
     if (event.key !== 'Enter') return;
     const term = (searchInput || '').trim();
-    setSearchTerm(term);
     setPage(0);
     setSelectedIds([]);
 
