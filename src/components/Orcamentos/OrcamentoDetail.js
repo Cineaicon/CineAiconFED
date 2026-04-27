@@ -22,11 +22,6 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   Tooltip,
 } from '@mui/material';
 import {
@@ -37,12 +32,10 @@ import {
   Cancel,
   LocalShipping,
   ContentCopy,
-  AddCircleOutline,
-  Delete,
+  OpenInNew,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { orcamentoService, materialService } from '../../services/api';
-import Autocomplete from '@mui/material/Autocomplete';
+import { orcamentoService } from '../../services/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -82,17 +75,8 @@ const OrcamentoDetail = () => {
     observacao: '',
   });
 
-  const extraVazio = { materialId: null, categoria: '', equipamento: '', quantidade: 1, dias: 1, custoDiario: '', descontoPercentual: 0 };
-  const [extrasDialogOpen, setExtrasDialogOpen] = useState(false);
-  const [extraEditando, setExtraEditando] = useState(null);
-  const [extraForm, setExtraForm] = useState(extraVazio);
-  const [extraLoading, setExtraLoading] = useState(false);
-  const [materiais, setMateriais] = useState([]);
-  const [materialSelecionado, setMaterialSelecionado] = useState(null);
-
   useEffect(() => {
     loadOrcamento();
-    materialService.getAll().then(r => setMateriais(r.data || [])).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -268,55 +252,6 @@ const OrcamentoDetail = () => {
       pesoTotal: Number(pesoTotalCalculado.toFixed(2))
     };
   }, [orcamento]);
-
-  const handleAbrirNovoExtra = () => {
-    setExtraEditando(null);
-    setExtraForm(extraVazio);
-    setMaterialSelecionado(null);
-    setExtrasDialogOpen(true);
-  };
-
-  const handleAbrirEditarExtra = (extra) => {
-    setExtraEditando(extra);
-    const mat = materiais.find(m => m._id === (extra.materialId?._id || extra.materialId)) || null;
-    setMaterialSelecionado(mat);
-    setExtraForm({
-      materialId: extra.materialId || null,
-      categoria: extra.categoria || '',
-      equipamento: extra.equipamento || '',
-      quantidade: extra.quantidade || 1,
-      dias: extra.dias || 1,
-      custoDiario: extra.custoDiario ?? '',
-      descontoPercentual: extra.descontoPercentual || 0,
-    });
-    setExtrasDialogOpen(true);
-  };
-
-  const handleSalvarExtra = async () => {
-    try {
-      setExtraLoading(true);
-      if (extraEditando) {
-        await orcamentoService.updateExtra(id, extraEditando._id, extraForm);
-      } else {
-        await orcamentoService.addExtra(id, extraForm);
-      }
-      await loadOrcamento();
-      setExtrasDialogOpen(false);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao salvar extra');
-    } finally {
-      setExtraLoading(false);
-    }
-  };
-
-  const handleRemoverExtra = async (extraId) => {
-    try {
-      await orcamentoService.removeExtra(id, extraId);
-      await loadOrcamento();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao remover extra');
-    }
-  };
 
   if (loading) {
     return (
@@ -602,73 +537,29 @@ const OrcamentoDetail = () => {
       {/* Extras do Orçamento */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-            <Typography variant="h6">
-              Extras ({orcamento.extras?.length || 0})
-            </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h6">
+                Extras ({orcamento.extras?.length || 0})
+              </Typography>
+              {orcamento.extras?.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  Total extras: R$ {orcamento.extras.reduce((acc, ex) => {
+                    const bruto = (ex.quantidade || 0) * (ex.dias || 0) * (parseFloat(ex.custoDiario) || 0);
+                    const desc = ex.descontoPercentual > 0 ? (bruto * ex.descontoPercentual) / 100 : 0;
+                    return acc + Math.max(0, bruto - desc);
+                  }, 0).toFixed(2).replace('.', ',')}
+                </Typography>
+              )}
+            </Box>
             <Button
               variant="contained"
-              size="small"
-              startIcon={<AddCircleOutline />}
-              onClick={handleAbrirNovoExtra}
+              startIcon={<OpenInNew />}
+              onClick={() => navigate(`/orcamentos/${id}/extras`)}
             >
-              Incluir Extra
+              Gerenciar Extras
             </Button>
           </Box>
-          {orcamento.extras && orcamento.extras.length > 0 ? (
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: 'grey.100' }}>
-                  <TableCell><strong>Categoria</strong></TableCell>
-                  <TableCell><strong>Descrição</strong></TableCell>
-                  <TableCell align="center"><strong>Qtd</strong></TableCell>
-                  <TableCell align="center"><strong>Dias</strong></TableCell>
-                  <TableCell align="right"><strong>Custo/Dia</strong></TableCell>
-                  <TableCell align="center"><strong>Desc. %</strong></TableCell>
-                  <TableCell align="right"><strong>Total</strong></TableCell>
-                  <TableCell align="center"><strong>Ações</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {orcamento.extras.map((extra) => {
-                  const bruto = (extra.quantidade || 0) * (extra.dias || 0) * (extra.custoDiario || 0);
-                  const descVal = extra.descontoPercentual > 0 ? (bruto * extra.descontoPercentual) / 100 : 0;
-                  const final = Math.max(0, bruto - descVal);
-                  return (
-                    <TableRow key={extra._id} hover>
-                      <TableCell>{extra.categoria || '-'}</TableCell>
-                      <TableCell>{extra.equipamento || '-'}</TableCell>
-                      <TableCell align="center">{extra.quantidade}</TableCell>
-                      <TableCell align="center">{extra.dias}</TableCell>
-                      <TableCell align="right">R$ {(extra.custoDiario || 0).toFixed(2).replace('.', ',')}</TableCell>
-                      <TableCell align="center">
-                        {extra.descontoPercentual > 0 ? (
-                          <Chip label={`${extra.descontoPercentual}%`} size="small" color="success" variant="outlined" />
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell align="right"><strong>R$ {final.toFixed(2).replace('.', ',')}</strong></TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Editar">
-                          <IconButton size="small" onClick={() => handleAbrirEditarExtra(extra)}>
-                            <Edit fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Remover">
-                          <IconButton size="small" color="error" onClick={() => handleRemoverExtra(extra._id)}>
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Nenhum extra adicionado. Clique em "Incluir Extra" para adicionar.
-            </Typography>
-          )}
         </CardContent>
       </Card>
 
@@ -766,15 +657,6 @@ const OrcamentoDetail = () => {
             >
               PDF Contrato
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<PictureAsPdf />}
-              onClick={() => handleGeneratePDF('extras')}
-              color="secondary"
-              disabled={!orcamento.extras || orcamento.extras.length === 0}
-            >
-              PDF Extras
-            </Button>
           </Box>
         </CardContent>
       </Card>
@@ -830,132 +712,6 @@ const OrcamentoDetail = () => {
           <Button onClick={() => setStatusDialogOpen(false)}>Cancelar</Button>
           <Button onClick={confirmStatusChange} variant="contained">
             Confirmar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialog de Extras */}
-      <Dialog
-        open={extrasDialogOpen}
-        onClose={() => setExtrasDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>{extraEditando ? 'Editar Extra' : 'Incluir Extra'}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Autocomplete
-              options={materiais}
-              value={materialSelecionado}
-              getOptionLabel={(op) => op ? `${op.equipamento} — R$ ${(op.custoDiario || 0).toFixed(2).replace('.', ',')}` : ''}
-              filterOptions={(options, { inputValue }) => {
-                const term = (inputValue || '').toLowerCase();
-                return options.filter(op =>
-                  (op.equipamento || '').toLowerCase().includes(term) ||
-                  (op.categoria || '').toLowerCase().includes(term)
-                );
-              }}
-              onChange={(_, newValue) => {
-                setMaterialSelecionado(newValue);
-                if (newValue) {
-                  setExtraForm(prev => ({
-                    ...prev,
-                    materialId: newValue._id,
-                    categoria: newValue.categoria || '',
-                    equipamento: newValue.equipamento || '',
-                    custoDiario: newValue.custoDiario ?? '',
-                  }));
-                } else {
-                  setExtraForm(prev => ({ ...prev, materialId: null, categoria: '', equipamento: '', custoDiario: '' }));
-                }
-              }}
-              renderInput={(params) => (
-                <TextField {...params} label="Equipamento / Material" placeholder="Buscar por nome ou categoria..." />
-              )}
-              renderOption={(props, option) => (
-                <Box component="li" {...props} key={option._id}>
-                  <Box>
-                    <Typography variant="body2" fontWeight="bold">{option.equipamento}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {option.categoria} · R$ {(option.custoDiario || 0).toFixed(2).replace('.', ',')}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-              noOptionsText="Nenhum material encontrado"
-            />
-            {materialSelecionado && (
-              <Box display="flex" gap={1} flexWrap="wrap">
-                <Chip label={`Categoria: ${extraForm.categoria || '-'}`} size="small" variant="outlined" />
-                <Chip label={`Custo/dia: R$ ${Number(extraForm.custoDiario || 0).toFixed(2).replace('.', ',')}`} size="small" color="primary" variant="outlined" />
-              </Box>
-            )}
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Quantidade"
-                  value={extraForm.quantidade}
-                  onChange={(e) => setExtraForm({ ...extraForm, quantidade: Number(e.target.value) })}
-                  inputProps={{ min: 1 }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Dias"
-                  value={extraForm.dias}
-                  onChange={(e) => setExtraForm({ ...extraForm, dias: Number(e.target.value) })}
-                  inputProps={{ min: 1 }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Custo por Dia (R$)"
-                  value={extraForm.custoDiario}
-                  onChange={(e) => setExtraForm({ ...extraForm, custoDiario: e.target.value })}
-                  inputProps={{ min: 0, step: '0.01' }}
-                  helperText="Preenchido automaticamente pelo material"
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Desconto (%)"
-                  value={extraForm.descontoPercentual}
-                  onChange={(e) => setExtraForm({ ...extraForm, descontoPercentual: Number(e.target.value) })}
-                  inputProps={{ min: 0, max: 100, step: '0.01' }}
-                />
-              </Grid>
-            </Grid>
-            {extraForm.custoDiario !== '' && (
-              <Box p={1.5} bgcolor="primary.main" color="white" borderRadius={1} textAlign="center">
-                <Typography variant="body2">Total estimado</Typography>
-                <Typography variant="h6" fontWeight="bold">
-                  {(() => {
-                    const bruto = (Number(extraForm.quantidade) || 0) * (Number(extraForm.dias) || 0) * (Number(extraForm.custoDiario) || 0);
-                    const desc = Number(extraForm.descontoPercentual) || 0;
-                    const final = Math.max(0, bruto - (desc > 0 ? (bruto * desc) / 100 : 0));
-                    return `R$ ${final.toFixed(2).replace('.', ',')}`;
-                  })()}
-                </Typography>
-              </Box>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setExtrasDialogOpen(false)}>Cancelar</Button>
-          <Button
-            onClick={handleSalvarExtra}
-            variant="contained"
-            disabled={extraLoading || !extraForm.equipamento}
-          >
-            {extraLoading ? <CircularProgress size={20} /> : (extraEditando ? 'Salvar' : 'Incluir')}
           </Button>
         </DialogActions>
       </Dialog>

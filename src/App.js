@@ -12,6 +12,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import OrcamentoList from './components/Orcamentos/OrcamentoList';
 import OrcamentoForm from './components/Orcamentos/OrcamentoForm';
 import OrcamentoDetail from './components/Orcamentos/OrcamentoDetail';
+import OrcamentoExtras from './components/Orcamentos/OrcamentoExtras';
 import ClienteList from './components/Clientes/ClienteList';
 import ClienteForm from './components/Clientes/ClienteForm';
 import MaterialList from './components/Materiais/MaterialList';
@@ -104,6 +105,7 @@ function App() {
               <Route path="/orcamentos/novo" element={<OrcamentoForm />} />
               <Route path="/orcamentos/:id" element={<OrcamentoDetail />} />
               <Route path="/orcamentos/:id/editar" element={<OrcamentoForm />} />
+              <Route path="/orcamentos/:id/extras" element={<OrcamentoExtras />} />
               
               {/* Clientes */}
               <Route path="/clientes" element={<ClienteList />} />
