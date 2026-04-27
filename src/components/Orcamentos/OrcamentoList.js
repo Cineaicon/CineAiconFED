@@ -74,7 +74,6 @@ const OrcamentoList = () => {
   });
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
