@@ -83,6 +83,11 @@ export const orcamentoService = {
   
   // PDFs
   generatePDF: (id, tipo) => api.get(`/orcamentos/${id}/pdf/${tipo}`, { responseType: 'blob' }),
+
+  // Gestão de extras
+  addExtra: (orcamentoId, data) => api.post(`/orcamentos/${orcamentoId}/extras`, data),
+  updateExtra: (orcamentoId, extraId, data) => api.put(`/orcamentos/${orcamentoId}/extras/${extraId}`, data),
+  removeExtra: (orcamentoId, extraId) => api.delete(`/orcamentos/${orcamentoId}/extras/${extraId}`),
 };
 
 // Serviços para Extras
