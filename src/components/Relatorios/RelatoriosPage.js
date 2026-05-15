@@ -210,19 +210,22 @@ const RelatoriosPage = () => {
     try {
       setSaving(true);
       const valorPago = parseFloat(valor) || 0;
-      
+      // Arredondar centavos antes de comparar para evitar imprecisão de ponto flutuante
+      const calcStatus = (vp, vf) => {
+        const vpC = Math.round(vp * 100);
+        const vfC = Math.round((vf || 0) * 100);
+        return vpC >= vfC ? 'PAGO' : vpC > 0 ? 'PARCIAL' : 'PENDENTE';
+      };
+
       // Atualizar orçamento no backend
       await orcamentoService.update(orcamento._id, {
         valorPago: valorPago,
-        // Atualizar status de pagamento baseado no valor
-        statusPagamento: valorPago >= (orcamento.valorFinal || 0) ? 'PAGO' : valorPago > 0 ? 'PARCIAL' : 'PENDENTE',
+        statusPagamento: calcStatus(valorPago, orcamento.valorFinal),
       });
 
       const patch = (o) => {
         if (o._id !== orcamento._id) return o;
-        const sp =
-          valorPago >= (o.valorFinal || 0) ? 'PAGO' : valorPago > 0 ? 'PARCIAL' : 'PENDENTE';
-        return { ...o, valorPago, statusPagamento: sp };
+        return { ...o, valorPago, statusPagamento: calcStatus(valorPago, o.valorFinal) };
       };
 
       const updatedMes = orcamentosMesRef.current.map(patch);
