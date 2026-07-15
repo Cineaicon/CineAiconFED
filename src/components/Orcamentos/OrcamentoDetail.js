@@ -143,7 +143,8 @@ const OrcamentoDetail = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${tipo}-${orcamento.numero}.pdf`);
+      const jobNamePart = orcamento.jobName ? `-${orcamento.jobName.replace(/[\\/:*?"<>|]/g, '').trim()}` : '';
+      link.setAttribute('download', `${tipo}-${orcamento.numero}${jobNamePart}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
