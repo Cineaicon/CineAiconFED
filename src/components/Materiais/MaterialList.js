@@ -43,6 +43,7 @@ import {
   Inventory,
   PictureAsPdf as PdfIcon,
   Inventory2 as InventarioIcon,
+  TableChart as CsvIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { materialService } from '../../services/api';
@@ -100,6 +101,7 @@ const MaterialList = () => {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [loadingPdf, setLoadingPdf] = useState(false);
+  const [loadingCsv, setLoadingCsv] = useState(false);
   const [loadingPdfInventario, setLoadingPdfInventario] = useState(false);
   const [salvandoInventarioId, setSalvandoInventarioId] = useState(null);
   const [listaPdfDialogOpen, setListaPdfDialogOpen] = useState(false);
@@ -176,6 +178,33 @@ const MaterialList = () => {
       });
     } finally {
       setLoadingPdf(false);
+    }
+  };
+
+  const handleDownloadListaCsv = async () => {
+    try {
+      setLoadingCsv(true);
+      const params = categoriaListaPdf ? { categoria: categoriaListaPdf } : {};
+      const { data } = await materialService.downloadListaCsv(params);
+      const sufixo = categoriaListaPdf ? `-${categoriaListaPdf.replace(/\s+/g, '-')}` : '';
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `lista-equipamentos${sufixo}-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setSnackbar({ open: true, message: 'Lista de equipamentos (CSV) baixada com sucesso!', severity: 'success' });
+      setListaPdfDialogOpen(false);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Erro ao baixar CSV da lista de equipamentos: ' + (error.response?.data?.message || error.message),
+        severity: 'error',
+      });
+    } finally {
+      setLoadingCsv(false);
     }
   };
 
@@ -364,7 +393,7 @@ const MaterialList = () => {
               onClick={handleOpenListaPdfDialog}
               disabled={loadingPdf}
             >
-              Lista de equipamentos (PDF)
+              Lista de equipamentos (PDF/CSV)
             </Button>
             <Button
               variant="contained"
@@ -485,10 +514,10 @@ const MaterialList = () => {
 
       {/* Dialog Gerar Lista em PDF */}
       <Dialog open={listaPdfDialogOpen} onClose={() => setListaPdfDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Gerar lista de equipamentos em PDF</DialogTitle>
+        <DialogTitle>Gerar lista de equipamentos</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            Escolha uma categoria para filtrar a lista ou deixe "Todas" para incluir todos os equipamentos.
+            Escolha uma categoria para filtrar a lista ou deixe "Todas" para incluir todos os equipamentos. Depois escolha o formato: PDF ou CSV (planilha).
           </DialogContentText>
           <FormControl fullWidth>
             <InputLabel id="lista-pdf-categoria">Categoria</InputLabel>
@@ -511,7 +540,10 @@ const MaterialList = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setListaPdfDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={handleDownloadListaPdf} variant="contained" startIcon={<PdfIcon />} disabled={loadingPdf}>
+          <Button onClick={handleDownloadListaCsv} variant="outlined" startIcon={<CsvIcon />} disabled={loadingCsv || loadingPdf}>
+            {loadingCsv ? 'Gerando...' : 'Gerar CSV'}
+          </Button>
+          <Button onClick={handleDownloadListaPdf} variant="contained" startIcon={<PdfIcon />} disabled={loadingPdf || loadingCsv}>
             {loadingPdf ? 'Gerando...' : 'Gerar PDF'}
           </Button>
         </DialogActions>
@@ -592,5 +624,3 @@ const MaterialList = () => {
 };
 
 export default MaterialList;
-
-

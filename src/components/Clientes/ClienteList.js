@@ -30,6 +30,7 @@ import {
   Search as SearchIcon,
   Phone,
   LocationOn,
+  TableChart as CsvIcon,
 } from '@mui/icons-material';
 import { clienteService } from '../../services/api';
 
@@ -49,10 +50,35 @@ const ClienteList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [loadingCsv, setLoadingCsv] = useState(false);
 
   useEffect(() => {
     loadClientes();
   }, []);
+
+  const handleDownloadCsv = async () => {
+    try {
+      setLoadingCsv(true);
+      const { data } = await clienteService.downloadListaCsv();
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `lista-clientes-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setSnackbar({ open: true, message: 'Lista de clientes (CSV) baixada com sucesso!', severity: 'success' });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Erro ao baixar CSV de clientes: ' + (error.response?.data?.message || error.message),
+        severity: 'error',
+      });
+    } finally {
+      setLoadingCsv(false);
+    }
+  };
 
   const loadClientes = async () => {
     try {
@@ -180,13 +206,23 @@ const ClienteList = () => {
           <Typography variant="h4" component="h1">
             Clientes
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/clientes/novo')}
-          >
-            Novo Cliente
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<CsvIcon />}
+              onClick={handleDownloadCsv}
+              disabled={loadingCsv}
+            >
+              {loadingCsv ? 'Gerando...' : 'Exportar CSV'}
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/clientes/novo')}
+            >
+              Novo Cliente
+            </Button>
+          </Box>
         </Box>
 
         <TextField
@@ -266,5 +302,3 @@ const ClienteList = () => {
 };
 
 export default ClienteList;
-
-

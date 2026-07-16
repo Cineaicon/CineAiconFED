@@ -26,6 +26,7 @@ export const clienteService = {
   create: (data) => api.post('/clientes', data),
   update: (id, data) => api.put(`/clientes/${id}`, data),
   delete: (id) => api.delete(`/clientes/${id}`),
+  downloadListaCsv: () => api.get('/clientes/lista/csv', { responseType: 'blob' }),
 };
 
 // Serviços para Colaboradores
@@ -47,6 +48,7 @@ export const materialService = {
   getCategorias: () => api.get('/materiais/categorias/lista'),
   downloadListaPdf: (params) => api.get('/materiais/lista/pdf', { params, responseType: 'blob' }),
   downloadInventarioPdf: (params) => api.get('/materiais/inventario/pdf', { params, responseType: 'blob' }),
+  downloadListaCsv: (params) => api.get('/materiais/lista/csv', { params, responseType: 'blob' }),
 };
 
 // Serviços para Orçamentos
@@ -127,4 +129,3 @@ export const testService = {
 };
 
 export default api;
-
